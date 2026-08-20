@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemStatus {
+  PENDING
+  COMPLETED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shoppingLists   ShoppingList[]
+  shoppingHistory ShoppingHistory[]
+  preference      UserPreference?
+}
+
+model ShoppingList {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ShoppingItem[]
+
+  @@index([userId])
+}
+
+model ShoppingItem {
+  id             String     @id @default(uuid())
+  name           String
+  quantity       Decimal
+  unit           String
+  category       String?
+  brand          String?
+  status         ItemStatus @default(PENDING)
+  shoppingListId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  @@index([shoppingListId])
+}
+
+model ShoppingHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  itemName    String
+  quantity    Decimal
+  unit        String
+  category    String?
+  purchasedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([itemName])
+}
+
+model UserPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  preferredLanguage String?
+  preferredCurrency String?
+  preferences       Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  brand       String?
+  categoryId  String?
+  description String?
+  price       Decimal?
+  currency    String?
+  size        String?
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category ProductCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([name])
+  @@index([brand])
+  @@index([categoryId])
+}
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
