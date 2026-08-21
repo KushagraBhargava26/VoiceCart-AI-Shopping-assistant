@@ -5,7 +5,7 @@ const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000001";
 /**
  * Gets (or lazily creates) the default shopping list for the MVP's single default user.
  */
-async function getDefaultShoppingList() {
+export async function getDefaultShoppingList() {
   let list = await prisma.shoppingList.findFirst({
     where: { userId: DEFAULT_USER_ID },
   });
@@ -127,4 +127,19 @@ export async function deleteShoppingItem(id) {
   }
 
   await prisma.shoppingItem.delete({ where: { id } });
+}
+
+/**
+ * Finds an existing shopping item by (case-insensitive) name within the default list.
+ * Used by voice commands, where the user refers to items by name rather than ID.
+ */
+export async function findShoppingItemByName(name) {
+  const list = await getDefaultShoppingList();
+
+  return prisma.shoppingItem.findFirst({
+    where: {
+      shoppingListId: list.id,
+      name: { equals: name.trim(), mode: "insensitive" },
+    },
+  });
 }
