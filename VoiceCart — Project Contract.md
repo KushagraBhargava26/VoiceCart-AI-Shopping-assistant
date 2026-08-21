@@ -666,6 +666,22 @@ The project should maintain:
 
 ---
 
+# 13.1 MVP User Model (Single Default User)
+
+For the initial MVP, VoiceCart does not implement authentication or login.
+
+Instead, the backend seeds a single default `User` record (fixed UUID) and a single default `ShoppingList` associated with that user. All shopping-list operations in the MVP operate against this default user/list.
+
+This decision is intentional and does not require future schema changes:
+
+- The `User`, `ShoppingList`, and related models already support multiple users (`User 1 ── N ShoppingList`).
+- When real authentication is introduced later, the only required change is replacing the hardcoded default `userId` with the authenticated user's ID (e.g. from a JWT/session), typically in one middleware/controller location.
+- No changes to the database schema, Prisma models, services, or API contracts are expected as part of that future migration.
+
+This approach keeps the MVP simple while remaining fully compatible with future multi-user support.
+
+---
+
 # 14. Scope Boundaries
 
 The primary purpose of VoiceCart is to manage shopping lists and provide intelligent shopping assistance.

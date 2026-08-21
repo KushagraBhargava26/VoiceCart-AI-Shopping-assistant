@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import shoppingRoutes from './routes/shopping.routes.js';
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.get('/api/v1/health', (req, res) => {
     },
   });
 });
+
+app.use('/api/v1/shopping-list', shoppingRoutes);
 
 app.listen(PORT, () => {
   console.log(`VoiceCart server running on port ${PORT}`);

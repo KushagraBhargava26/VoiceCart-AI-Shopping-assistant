@@ -918,7 +918,9 @@ Breaking changes should result in a new API version rather than silently changin
 
 Authentication is not required for the initial MVP unless the implementation requires multiple users or persistent user-specific accounts.
 
-If authentication is added later, user identity should be passed securely through the backend.
+For the MVP, the backend operates against a single seeded default `User` and default `ShoppingList` (fixed UUID). All shopping-list endpoints implicitly operate on this default user/list. This is documented in `CONTRACT.md` (Section 13.1).
+
+If authentication is added later, user identity should be passed securely through the backend (e.g. via JWT), replacing the hardcoded default `userId` reference used internally by controllers/services. This is expected to be a small, localized change — no changes to the database schema, Prisma models, or endpoint structure are anticipated.
 
 The API contract should then be updated to document authentication requirements.
 
