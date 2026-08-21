@@ -1,6 +1,8 @@
 import { interpretCommand } from "./ai.service.js";
 import { validateCommand } from "../validators/commandValidator.js";
 import { addShoppingItem, updateShoppingItem, deleteShoppingItem, findShoppingItemByName } from "./shopping.service.js";
+import { searchProducts } from "./search.service.js";
+import { getSuggestions } from "./suggestion.service.js";
 
 /**
  * Handles ADD_ITEM: adds each item, merging quantity if an item with the same
@@ -109,18 +111,27 @@ export async function processVoiceCommand(transcript) {
       return { action: "UPDATE_ITEM", items: updated, message };
     }
 
-    case "SEARCH_PRODUCT":
-      // Full execution wired up in Phase 7 (Voice-Activated Search).
+    case "SEARCH_PRODUCT": {
+      const results = await searchProducts({
+        query: command.query,
+        brand: command.filters?.brand,
+        minPrice: command.filters?.minPrice,
+        maxPrice: command.filters?.maxPrice,
+        size: command.filters?.size,
+        category: command.filters?.category,
+      });
       return {
         action: "SEARCH_PRODUCT",
         query: command.query,
         filters: command.filters || {},
-        results: [],
+        results,
       };
+    }
 
-    case "GET_SUGGESTIONS":
-      // Full execution wired up in Phase 6 (Smart Suggestions).
-      return { action: "GET_SUGGESTIONS", suggestions: [] };
+    case "GET_SUGGESTIONS": {
+      const suggestions = await getSuggestions();
+      return { action: "GET_SUGGESTIONS", suggestions };
+    }
 
     case "CLARIFICATION_REQUIRED":
       return { action: "CLARIFICATION_REQUIRED", message: command.message };

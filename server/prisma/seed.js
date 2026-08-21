@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000001";
 
-async function main() {
+async function seedDefaultUser() {
   const user = await prisma.user.upsert({
     where: { id: DEFAULT_USER_ID },
     update: {},
@@ -30,6 +30,57 @@ async function main() {
   } else {
     console.log("Default user and shopping list already exist.");
   }
+}
+
+async function seedProducts() {
+  const categories = ['Dairy', 'Personal Care', 'Beverages', 'Snacks', 'Grains'];
+
+  const categoryRecords = {};
+  for (const name of categories) {
+    const category = await prisma.productCategory.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    categoryRecords[name] = category;
+  }
+
+  const products = [
+    { name: 'Toothpaste', brand: 'Colgate', category: 'Personal Care', price: 120, currency: 'INR', size: '100g' },
+    { name: 'Toothpaste', brand: 'Pepsodent', category: 'Personal Care', price: 95, currency: 'INR', size: '100g' },
+    { name: 'Shampoo', brand: 'Dove', category: 'Personal Care', price: 250, currency: 'INR', size: '200ml' },
+    { name: 'Milk', brand: 'Amul', category: 'Dairy', price: 60, currency: 'INR', size: '1 litre' },
+    { name: 'Water Bottle', brand: 'Bisleri', category: 'Beverages', price: 20, currency: 'INR', size: '1 litre' },
+    { name: 'Potato Chips', brand: 'Lays', category: 'Snacks', price: 20, currency: 'INR', size: '52g' },
+    { name: 'Rice', brand: 'India Gate', category: 'Grains', price: 400, currency: 'INR', size: '5kg' },
+  ];
+
+  for (const product of products) {
+    const existing = await prisma.product.findFirst({
+      where: { name: product.name, brand: product.brand },
+    });
+
+    if (!existing) {
+      await prisma.product.create({
+        data: {
+          name: product.name,
+          brand: product.brand,
+          price: product.price,
+          currency: product.currency,
+          size: product.size,
+          available: true,
+          categoryId: categoryRecords[product.category].id,
+        },
+      });
+    }
+  }
+
+  console.log('Sample products seeded.');
+}
+
+async function main() {
+  await seedDefaultUser();
+  await seedProducts();
 }
 
 main()

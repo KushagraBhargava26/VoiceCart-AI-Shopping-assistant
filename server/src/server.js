@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import shoppingRoutes from './routes/shopping.routes.js';
 import commandRoutes from './routes/command.routes.js';
 import suggestionRoutes from './routes/suggestion.routes.js';
+import searchRoutes from './routes/search.routes.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get('/api/v1/health', (req, res) => {
 app.use('/api/v1/shopping-list', shoppingRoutes);
 app.use('/api/v1/commands', commandRoutes);
 app.use('/api/v1/suggestions', suggestionRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 app.listen(PORT, () => {
   console.log(`VoiceCart server running on port ${PORT}`);
