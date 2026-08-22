@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { searchProducts } from "../../services/search.service.js";
 import { addItem } from "../../services/shoppingList.service.js";
 
 const POPULAR_SEARCHES = ["Milk", "Eggs", "Rice", "Apples", "Bread", "Bananas", "Toothpaste"];
 
-export default function SearchCard({ onItemAdded }) {
+export default function SearchCard({ onItemAdded, presetQuery }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +27,25 @@ export default function SearchCard({ onItemAdded }) {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    async function runCategorySearch() {
+      if (!presetQuery) return;
+      setQuery(presetQuery);
+      setLoading(true);
+      setError(null);
+      setHasSearched(true);
+      try {
+        const data = await searchProducts({ category: presetQuery });
+        setResults(data.results);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    runCategorySearch();
+  }, [presetQuery]);
 
   function handleSubmit(e) {
     e.preventDefault();

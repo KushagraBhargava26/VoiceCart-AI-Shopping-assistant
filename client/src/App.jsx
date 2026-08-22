@@ -4,13 +4,20 @@ import ShoppingListCard from './components/shopping/ShoppingListCard.jsx';
 import SuggestionsCard from './components/suggestions/SuggestionsCard.jsx';
 import SearchCard from './components/search/SearchCard.jsx';
 import HistoryCard from './components/history/HistoryCard.jsx';
+import CategoriesCard from './components/categories/CategoriesCard.jsx';
 
 function App() {
   const [activeView, setActiveView] = useState('home');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchPresetQuery, setSearchPresetQuery] = useState(null);
 
   function triggerRefresh() {
     setRefreshKey((prev) => prev + 1);
+  }
+
+  function handleSelectCategory(categoryName) {
+    setSearchPresetQuery(categoryName);
+    setActiveView('search');
   }
 
   return (
@@ -36,13 +43,19 @@ function App() {
 
         {activeView === 'search' && (
           <div className="max-w-xl">
-            <SearchCard onItemAdded={triggerRefresh} />
+            <SearchCard onItemAdded={triggerRefresh} presetQuery={searchPresetQuery} />
           </div>
         )}
 
         {activeView === 'history' && (
           <div className="max-w-xl">
             <HistoryCard refreshKey={refreshKey} />
+          </div>
+        )}
+
+        {activeView === 'categories' && (
+          <div className="max-w-2xl">
+            <CategoriesCard onSelectCategory={handleSelectCategory} />
           </div>
         )}
       </main>
