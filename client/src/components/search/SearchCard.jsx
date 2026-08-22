@@ -1,5 +1,4 @@
 import { useState } from "react";
-const [successMessage, setSuccessMessage] = useState(null);
 import { searchProducts } from "../../services/search.service.js";
 import { addItem } from "../../services/shoppingList.service.js";
 
@@ -11,6 +10,7 @@ export default function SearchCard({ onItemAdded }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   async function runSearch(searchTerm) {
     if (!searchTerm.trim()) return;
@@ -54,14 +54,27 @@ export default function SearchCard({ onItemAdded }) {
     <div className="bg-panel border border-border-soft rounded-xl p-4.5">
       <div className="flex items-center gap-2 text-[13px] font-semibold mb-3">🔍 Search Products</div>
 
-      <form onSubmit={handleSubmit} className="mb-3">
+      <form onSubmit={handleSubmit} className="mb-3 flex gap-2">
         <input
           type="text"
           placeholder="Search for products..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full bg-panel-2 border border-border-soft rounded-md px-3 py-2 text-[13px] outline-none focus:border-teal"
+          className="flex-1 bg-panel-2 border border-border-soft rounded-md px-3 py-2 text-[13px] outline-none focus:border-teal"
         />
+        {hasSearched && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setResults([]);
+              setHasSearched(false);
+              setError(null);
+            }}
+            className="text-[12px] text-text-dim border border-border-soft px-3 rounded-md hover:bg-panel-2">
+            ✕ Clear
+          </button>
+        )}
       </form>
 
       {!hasSearched && (

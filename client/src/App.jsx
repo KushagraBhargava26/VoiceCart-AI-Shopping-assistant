@@ -3,6 +3,7 @@ import Sidebar from './components/layout/Sidebar.jsx';
 import ShoppingListCard from './components/shopping/ShoppingListCard.jsx';
 import SuggestionsCard from './components/suggestions/SuggestionsCard.jsx';
 import SearchCard from './components/search/SearchCard.jsx';
+import HistoryCard from './components/history/HistoryCard.jsx';
 
 function App() {
   const [activeView, setActiveView] = useState('home');
@@ -36,6 +37,12 @@ function App() {
         {activeView === 'search' && (
           <div className="max-w-xl">
             <SearchCard onItemAdded={triggerRefresh} />
+          </div>
+        )}
+
+        {activeView === 'history' && (
+          <div className="max-w-xl">
+            <HistoryCard refreshKey={refreshKey} />
           </div>
         )}
       </main>
