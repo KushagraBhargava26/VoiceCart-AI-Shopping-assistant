@@ -58,9 +58,24 @@ export async function getShoppingList() {
 
   return items;
 }
-
 export async function addShoppingItem({ name, quantity, unit, category, brand }) {
   const list = await getDefaultShoppingList();
+
+  const existing = await prisma.shoppingItem.findFirst({
+    where: {
+      shoppingListId: list.id,
+      name: { equals: name.trim(), mode: 'insensitive' },
+      unit,
+    },
+  });
+
+  if (existing) {
+    const merged = await prisma.shoppingItem.update({
+      where: { id: existing.id },
+      data: { quantity: Number(existing.quantity) + Number(quantity) },
+    });
+    return merged;
+  }
 
   const resolvedCategory = category || guessCategory(name);
 

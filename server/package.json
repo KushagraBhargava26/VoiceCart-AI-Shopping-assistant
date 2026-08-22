@@ -6,6 +6,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "seed": "node --experimental-strip-types prisma/seed.js",
+    "import-products": "node --experimental-strip-types prisma/importProducts.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
