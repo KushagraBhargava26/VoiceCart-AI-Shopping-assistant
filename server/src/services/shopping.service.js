@@ -47,6 +47,67 @@ function guessCategory(name) {
 
   return null;
 }
+/**
+ * Guesses a sensible unit for common grocery items when the caller supplies
+ * a generic placeholder unit (e.g. "unit"). Keeps behavior consistent whether
+ * the item was added via voice, search, suggestions, or manual entry.
+ */
+function guessUnit(name) {
+  const normalized = name.toLowerCase();
+
+  const map = {
+    litres: ["milk", "water", "juice", "oil", "curd"],
+    kg: ["rice", "atta", "wheat", "sugar", "flour", "potato", "onion", "tomato"],
+    pieces: ["apple", "banana", "orange", "mango", "egg", "bread"],
+    packet: ["chips", "biscuit", "namkeen", "wafer"],
+    piece: ["toothpaste", "shampoo", "soap", "brush"],
+  };
+
+  for (const [unit, keywords] of Object.entries(map)) {
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      return unit;
+    }
+  }
+
+  return "piece"; // sensible default, better than a bare "unit"
+}
+
+/**
+ * Normalizes common unit synonyms/pluralization so the same item always
+ * ends up with the same stored unit, regardless of how it was phrased
+ * (e.g. "litre" vs "litres", "kilo" vs "kg").
+ */
+function normalizeUnit(unit) {
+  if (!unit) return unit;
+  const u = unit.toLowerCase().trim();
+
+  const map = {
+    litre: "litres",
+    litres: "litres",
+    liter: "litres",
+    liters: "litres",
+    l: "litres",
+    kg: "kg",
+    kilo: "kg",
+    kilos: "kg",
+    kilogram: "kg",
+    kilograms: "kg",
+    piece: "pieces",
+    pieces: "pieces",
+    pc: "pieces",
+    dozen: "dozens",
+    dozens: "dozens",
+    packet: "packets",
+    packets: "packets",
+    bottle: "bottles",
+    bottles: "bottles",
+    gram: "grams",
+    grams: "grams",
+    g: "grams",
+  };
+
+  return map[u] || unit;
+}
 
 export async function getShoppingList() {
   const list = await getDefaultShoppingList();
@@ -61,11 +122,13 @@ export async function getShoppingList() {
 export async function addShoppingItem({ name, quantity, unit, category, brand }) {
   const list = await getDefaultShoppingList();
 
+  const resolvedUnit = normalizeUnit(!unit || unit === "unit" ? guessUnit(name) : unit);
+
   const existing = await prisma.shoppingItem.findFirst({
     where: {
       shoppingListId: list.id,
-      name: { equals: name.trim(), mode: 'insensitive' },
-      unit,
+      name: { equals: name.trim(), mode: "insensitive" },
+      unit: resolvedUnit,
     },
   });
 
@@ -83,7 +146,7 @@ export async function addShoppingItem({ name, quantity, unit, category, brand })
     data: {
       name,
       quantity,
-      unit,
+      unit: resolvedUnit,
       category: resolvedCategory,
       brand: brand || null,
       shoppingListId: list.id,
