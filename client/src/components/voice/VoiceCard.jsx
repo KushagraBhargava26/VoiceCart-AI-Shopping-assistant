@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useVoiceRecognition } from "../../hooks/useVoiceRecognition.js";
 import { sendVoiceCommand } from "../../services/command.service.js";
 
@@ -9,12 +9,12 @@ const LANGUAGES = [
 
 const EXAMPLE_COMMANDS = ["Add milk to my list", "I need 2 bottles of water", "Remove bread", "Find toothpaste under 300"];
 
-export default function VoiceCard({ onCommandProcessed }) {
+export default function VoiceCard({ onCommandProcessed, onSearchCommand }) {
   const [language, setLanguage] = useState("en-IN");
   const { isSupported, isListening, transcript, error: recognitionError, startListening, resetTranscript } = useVoiceRecognition(language);
 
   const [processing, setProcessing] = useState(false);
-  const [feedback, setFeedback] = useState(null); // { status: 'success' | 'error', lines: [] }
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     if (!transcript) return;
@@ -27,6 +27,10 @@ export default function VoiceCard({ onCommandProcessed }) {
         const lines = buildFeedbackLines(result);
         setFeedback({ status: "success", heading: "Command executed successfully", lines });
         onCommandProcessed?.();
+
+        if (result.action === "SEARCH_PRODUCT") {
+          onSearchCommand?.(result.query);
+        }
       } catch (err) {
         setFeedback({ status: "error", heading: "Command failed", lines: [err.message] });
       } finally {
@@ -61,7 +65,7 @@ export default function VoiceCard({ onCommandProcessed }) {
     return (
       <div className="bg-panel border border-border-soft rounded-xl p-6 text-center">
         <p className="text-text-dim text-[13px]">
-          Voice input isn't supported in this browser. Please use Chrome, Edge, or Safari — or add items manually from the Shopping List.
+          Voice input isn't supported in this browser. Please use Chrome, Edge, or Safari - or add items manually from the Shopping List.
         </p>
       </div>
     );
@@ -106,7 +110,7 @@ export default function VoiceCard({ onCommandProcessed }) {
             feedback.status === "success" ? "border-teal-dim bg-teal/5 text-teal" : "border-red-400/30 bg-red-400/5 text-red-400"
           }`}>
           <div className="font-medium mb-1">
-            {feedback.status === "success" ? "✓" : "✕"} {feedback.heading}
+            {feedback.status === "success" ? "OK" : "X"} {feedback.heading}
           </div>
           {feedback.lines.map((line, idx) => (
             <div key={idx} className="text-text-dim">
@@ -128,3 +132,4 @@ export default function VoiceCard({ onCommandProcessed }) {
     </div>
   );
 }
+

@@ -23,7 +23,7 @@ Rules:
 7. If the command is unrelated to shopping list management, return UNKNOWN.
 8. Never invent information (prices, brands, availability) that the user did not mention.
 9. The user may speak in English or Hindi (or Hinglish). Always return the structured output in the same JSON schema regardless of input language.
-
+10. If the command mentions a price constraint (e.g. "under X", "below X rupees") alongside an add/remove/update intent, treat it as a search request instead, since price constraints are used to browse/filter products, not to add a specific item. Prefer SEARCH_PRODUCT in these cases.
 Examples:
 
 Input: "Add 2 bottles of water"

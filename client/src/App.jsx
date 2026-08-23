@@ -8,12 +8,18 @@ import HistoryCard from "./components/history/HistoryCard.jsx";
 import CategoriesCard from "./components/categories/CategoriesCard.jsx";
 
 function App() {
+  const [voiceSearchQuery, setVoiceSearchQuery] = useState(null);
   const [activeView, setActiveView] = useState("home");
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchPresetQuery, setSearchPresetQuery] = useState(null);
 
   function triggerRefresh() {
     setRefreshKey((prev) => prev + 1);
+  }
+
+  function handleVoiceSearch(query) {
+    setVoiceSearchQuery(query);
+    setActiveView("search");
   }
 
   function handleSelectCategory(categoryName) {
@@ -24,11 +30,11 @@ function App() {
   return (
     <div className="flex min-h-screen bg-bg text-text-main">
       <Sidebar activeView={activeView} onNavigate={setActiveView} />
-      <main className="flex-1 p-7">
+      <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
         {activeView === "home" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
             <div className="lg:col-span-2 space-y-5">
-              <VoiceCard onCommandProcessed={triggerRefresh} />
+              <VoiceCard onCommandProcessed={triggerRefresh} onSearchCommand={handleVoiceSearch} />
               <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
             </div>
             <div>
@@ -56,7 +62,7 @@ function App() {
 
         {activeView === "search" && (
           <div className="max-w-xl">
-            <SearchCard onItemAdded={triggerRefresh} presetQuery={searchPresetQuery} />
+            <SearchCard onItemAdded={triggerRefresh} presetQuery={searchPresetQuery} voiceQuery={voiceSearchQuery} />
           </div>
         )}
 

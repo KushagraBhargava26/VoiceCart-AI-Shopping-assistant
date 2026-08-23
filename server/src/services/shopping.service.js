@@ -129,9 +129,9 @@ export async function addShoppingItem({ name, quantity, unit, category, brand })
       shoppingListId: list.id,
       name: { equals: name.trim(), mode: "insensitive" },
       unit: resolvedUnit,
+      brand: brand || null,
     },
   });
-
   if (existing) {
     const merged = await prisma.shoppingItem.update({
       where: { id: existing.id },

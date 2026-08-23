@@ -4,7 +4,7 @@ import { addItem } from "../../services/shoppingList.service.js";
 
 const POPULAR_SEARCHES = ["Milk", "Eggs", "Rice", "Apples", "Bread", "Bananas", "Toothpaste"];
 
-export default function SearchCard({ onItemAdded, presetQuery }) {
+export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +27,12 @@ export default function SearchCard({ onItemAdded, presetQuery }) {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (voiceQuery) {
+      runSearch(voiceQuery);
+    }
+  }, [voiceQuery]);
 
   useEffect(() => {
     async function runCategorySearch() {
