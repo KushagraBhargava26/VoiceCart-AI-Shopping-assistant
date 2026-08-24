@@ -82,10 +82,14 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
 
   async function handleAddItem(e) {
     e.preventDefault();
-    if (!newItem.name.trim() || !newItem.unit.trim()) return;
+    if (!newItem.name.trim()) return;
 
     try {
-      const created = await addItem(newItem);
+      const created = await addItem({
+        name: newItem.name.trim(),
+        quantity: Number(newItem.quantity) || 1,
+        unit: newItem.unit.trim() || "unit"
+      });
       setItems((prev) => [...prev, created]);
       setNewItem({ name: "", quantity: 1, unit: "" });
       setShowAddForm(false);
@@ -93,6 +97,23 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  function handleShareToWhatsApp() {
+    if (items.length === 0) return;
+
+    let text = `🛒 *My VoiceCart Shopping List* (${items.length} item${items.length > 1 ? 's' : ''})\n`;
+    text += `----------------------------------\n`;
+    items.forEach((item) => {
+      const priceVal = Number(item.price ?? item.estimatedPrice ?? 45) * Number(item.quantity || 1);
+      text += `• ${item.name} - ${item.quantity} ${item.unit || 'unit'} (₹${priceVal})\n`;
+    });
+    text += `----------------------------------\n`;
+    text += `💰 *Estimated Total:* ₹${(cartTotal || 0).toFixed(0)}\n\n`;
+    text += `Shared via VoiceCart AI Shopping Assistant 🚀\nhttps://voice-cart-ai-shopping-assistant.vercel.app`;
+
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encodedText}`, "_blank");
   }
 
   return (
@@ -106,11 +127,22 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
             </span>
           )}
         </div>
-        <button
-          onClick={() => setShowAddForm((prev) => !prev)}
-          className="text-[12px] border border-teal-dim text-teal px-2.5 py-1 rounded-md hover:bg-teal/10 transition-colors">
-          {showAddForm ? "Cancel" : "+ Add Item"}
-        </button>
+
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button
+              onClick={handleShareToWhatsApp}
+              className="text-[12px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-md hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5 font-medium shadow-sm"
+              title="Share shopping list to WhatsApp">
+              <span>💬</span> Share to WhatsApp
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddForm((prev) => !prev)}
+            className="text-[12px] border border-teal-dim text-teal px-2.5 py-1 rounded-md hover:bg-teal/10 transition-colors">
+            {showAddForm ? "Cancel" : "+ Add Item"}
+          </button>
+        </div>
       </div>
 
       {/* Estimated cart total banner */}
@@ -174,7 +206,7 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
         </p>
       )}
 
-      {!loading && items.map((item) => (
+      {!loading && Array.isArray(items) && items.map((item) => (
         <ShoppingItemRow key={item.id} item={item} onUpdateQuantity={handleUpdateQuantity} onDelete={handleDelete} />
       ))}
 
