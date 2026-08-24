@@ -13,6 +13,10 @@ const NUMBER_WORDS = {
   ten: 10, das: 10
 };
 
+const SUFFIX_REGEX = /(?:\s+(?:to|in|on|into)\s+(?:my|the|a)?\s*(?:cart|shopping list|list)|to my cart|to cart|to my list|to list|in my cart|in cart|in my list|in list|on my list|list mein|list me|cart mein|cart me|kar do|daal do|bhej do|karo|daalo|add|ऐड|ऐड करो|ऐड कर दो|कर दो|chahiye))+$/gi;
+
+const PREFIX_REGEX = /^(?:add|put|buy|need|want|get|i want|i need|please|chahiye|daal|daalo|karo|bhejo|rakho|laao|lano|le aao|ऐड|ऐड करो|ऐड कर दो|डालो|डाल दो|चाहिए|कीजिये|करो)\s+/gi;
+
 export function parseClientVoiceCommand(rawTranscript, language) {
   const transcript = (rawTranscript || "").trim();
   const lower = transcript.toLowerCase();
@@ -20,6 +24,8 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   // 1. Check for REMOVE action (Hindi: hata, nikal, drop, remove)
   if (/\b(remove|delete|hata|nikal|drop|mita|hatao)\b/i.test(lower)) {
     const cleanName = transcript
+      .replace(PREFIX_REGEX, "")
+      .replace(SUFFIX_REGEX, "")
       .replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b/gi, "")
       .trim() || "Item";
 
@@ -34,6 +40,8 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   // 2. Check for SEARCH action (Hindi: search, find, dhundho, dikhao)
   if (/\b(search|find|dhundho|dikhao|look for|kholo)\b/i.test(lower)) {
     const query = transcript
+      .replace(PREFIX_REGEX, "")
+      .replace(SUFFIX_REGEX, "")
       .replace(/\b(search|find|dhundho|dikhao|look for|kholo|karo|please|under \d+|rupees|rupaye)\b/gi, "")
       .trim() || transcript;
 
@@ -47,7 +55,8 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
   // 3. Multi-item ADD action (split by "and", "aur", "tatha", "evam", "plus", ",")
   const cleanBody = transcript
-    .replace(/(?:add|put|buy|need|want|chahiye|daal|daalo|karo|bhejo|rakho|laao|lano|le aao|kar do|daal do|bhej do|ऐड|ऐड करो|ऐड कर दो|डालो|डाल दो|चाहिए|कीजिये|करो|do|please|to my list|list mein|list me)/gi, "")
+    .replace(PREFIX_REGEX, "")
+    .replace(SUFFIX_REGEX, "")
     .trim();
 
   // Split into segments by conjunctions
@@ -76,7 +85,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       if (NUMBER_WORDS[firstWord]) {
         quantity = NUMBER_WORDS[firstWord];
         const secondWord = (words[1] || "").toLowerCase();
-        if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलo", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(secondWord)) {
+        if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(secondWord)) {
           unit = secondWord;
           itemName = words.slice(2).join(" ");
         } else {
@@ -85,18 +94,19 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       }
     }
 
-    // Clean up residual verbs and prepositions from itemName
+    // Clean up residual verbs, prepositions, and trailing suffixes from itemName
     itemName = itemName
       .replace(/^(of|ka|ki|ke)\s+/i, "")
-      .replace(/(?:kar do|daal do|bhej do|karo|daalo|add|ऐड|ऐड करो|ऐड कर दो|कर दो)$/gi, "")
+      .replace(SUFFIX_REGEX, "")
+      .replace(PREFIX_REGEX, "")
       .trim() || seg;
 
-    // Standardize Hindi food names to standard catalog names
+    // Standardize food names to standard catalog names
     const cleanLower = itemName.toLowerCase();
     let finalName = itemName;
-    if (cleanLower.includes("dudh") || cleanLower.includes("doodh") || cleanLower.includes("दूध") || cleanLower === "milk") {
+    if (cleanLower.includes("dudh") || cleanLower.includes("doodh") || cleanLower.includes("दूध") || cleanLower === "milk" || cleanLower.includes("milk")) {
       finalName = "Amul Taaza Fresh Milk 1L";
-    } else if (cleanLower.includes("paani") || cleanLower.includes("pani") || cleanLower.includes("पानी") || cleanLower === "water") {
+    } else if (cleanLower.includes("paani") || cleanLower.includes("pani") || cleanLower.includes("पानी") || cleanLower === "water" || cleanLower.includes("water")) {
       finalName = "Bisleri Mineral Water 1L";
     } else if (cleanLower.includes("bread") || cleanLower.includes("ब्रेड")) {
       finalName = "Britannia Brown Bread 400g";
