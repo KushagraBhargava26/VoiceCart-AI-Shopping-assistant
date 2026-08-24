@@ -19,15 +19,15 @@ Supported actions:
 
 Rules:
 1. Always respond with ONLY a valid JSON object. No explanations, no extra text, no markdown formatting.
-2. For ADD_ITEM, REMOVE_ITEM, UPDATE_ITEM: return an "items" array. Each item has "name" (string), "quantity" (number), and "unit" (string). If quantity is not mentioned, default to 1 and unit to "unit".
-3. Support multiple items in a single command.
-4. For SEARCH_PRODUCT: return "query" (string) and optionally "filters" (object with brand, minPrice, maxPrice, size, category).
-5. For GET_SUGGESTIONS: return just the action, nothing else.
-6. If the command is ambiguous (e.g. refers to "that thing" without context), return CLARIFICATION_REQUIRED with a "message" field asking for clarification.
-7. If the command is unrelated to shopping list management, return UNKNOWN.
+2. For ADD_ITEM and UPDATE_ITEM: return an "items" array. Each item has "name" (string), "quantity" (number), and "unit" (string). If quantity is not mentioned, default to 1 and unit to "unit".
+3. For REMOVE_ITEM: return an "items" array. Each item MUST have "name" (string). If the user specifies a quantity to remove (e.g. "remove 2 bread"), also include "quantity" (number) and "unit" (string). If no quantity is mentioned, omit quantity and unit — this means remove the item entirely.
+4. Support multiple items in a single command.
+5. For SEARCH_PRODUCT: return "query" (string) and optionally "filters" (object with brand, minPrice, maxPrice, size, category).
+6. For GET_SUGGESTIONS: return just the action, nothing else.
+7. If the command is ambiguous (e.g. refers to "that thing" without context), return CLARIFICATION_REQUIRED with a "message" field asking for clarification.
 8. Never invent information (prices, brands, availability) that the user did not mention.
 9. The user may speak in English or Hindi (or Hinglish). Always return the structured output in the same JSON schema regardless of input language.
-10. If the command mentions a price constraint (e.g. "under X", "below X rupees") alongside an add/remove/update intent, treat it as a search request instead, since price constraints are used to browse/filter products, not to add a specific item. Prefer SEARCH_PRODUCT in these cases.
+10. If the command mentions a price constraint (e.g. "under X", "below X rupees") alongside an add/remove/update intent, treat it as a search request instead.
 
 Examples:
 Input: "Add 2 bottles of water"
@@ -38,6 +38,12 @@ Output: {"action":"ADD_ITEM","items":[{"name":"milk","quantity":2,"unit":"litres
 
 Input: "Remove milk from my list"
 Output: {"action":"REMOVE_ITEM","items":[{"name":"milk"}]}
+
+Input: "Remove 2 bread"
+Output: {"action":"REMOVE_ITEM","items":[{"name":"bread","quantity":2,"unit":"pieces"}]}
+
+Input: "Remove 1 litre of milk"
+Output: {"action":"REMOVE_ITEM","items":[{"name":"milk","quantity":1,"unit":"litres"}]}
 
 Input: "Change apples to 5"
 Output: {"action":"UPDATE_ITEM","items":[{"name":"apples","quantity":5,"unit":"pieces"}]}
@@ -50,6 +56,9 @@ Output: {"action":"GET_SUGGESTIONS"}
 
 Input: "Doodh add karo"
 Output: {"action":"ADD_ITEM","items":[{"name":"milk","quantity":1,"unit":"unit"}]}
+
+Input: "2 bread hata do"
+Output: {"action":"REMOVE_ITEM","items":[{"name":"bread","quantity":2,"unit":"pieces"}]}
 
 Now interpret the following user command and respond with ONLY the JSON object.`;
 
@@ -65,15 +74,27 @@ function fallbackInterpret(transcript) {
   }
 
   // Remove item — check BEFORE add so Hindi "X ko remove kar do" never becomes ADD_ITEM
-  // Covers: "remove X", "X ko remove kar do", "hata do X", "X hata do", "X nikalo", "delete X"
+  // Covers: "remove X", "remove 2 X", "X ko remove kar do", "hata do X", "X hata do", "X nikalo", "delete X"
   const removeKeywords = /\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/i;
   if (removeKeywords.test(text)) {
-    const cleaned = text
+    // Strip remove keywords first
+    let cleaned = text
       .replace(/\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/gi, "")
-      .replace(/\b(ko|se|list|meri|my|the|please|karo|kar do|dena|se hata|list se)\b/gi, "")
+      .replace(/\b(ko|se|list|meri|my|the|please|karo|kar do|dena|se hata|list se|from)\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
+
     if (cleaned.length > 0) {
+      // Try to extract a leading quantity + unit from the cleaned text
+      // e.g. "2 bread", "1 litre of milk", "3 kg rice"
+      const qtyMatch = cleaned.match(/^(\d+(?:\.\d+)?)\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit|litre)?\s*(?:of\s+)?(.+)$/i);
+      if (qtyMatch) {
+        const quantity = parseFloat(qtyMatch[1]);
+        const unit = qtyMatch[2] || "pieces";
+        const name = qtyMatch[3].trim();
+        return { action: "REMOVE_ITEM", items: [{ name, quantity, unit }] };
+      }
+      // No quantity — remove the whole item
       return { action: "REMOVE_ITEM", items: [{ name: cleaned }] };
     }
   }
