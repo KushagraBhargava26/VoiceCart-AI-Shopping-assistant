@@ -153,6 +153,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
     status: 'PENDING'
   };
 
+  // 1. Instant local optimistic update for 0ms UI lag
   const local = getLocalItems();
   const existingIdx = local.findIndex((i) => i.name.toLowerCase() === cleanName.toLowerCase());
   if (existingIdx >= 0) {
@@ -164,11 +165,21 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   }
   saveLocalItems(local);
 
-  try {
-    await post('/shopping-list/items', { name: cleanName, quantity: quantity || 1, unit: unit || 'unit', category, brand, price: resolvedPrice });
-  } catch (err) {
-    console.warn("Server sync pending, item saved locally:", err.message);
-  }
+  // 2. Non-blocking async database write
+  post('/shopping-list/items', { name: cleanName, quantity: quantity || 1, unit: unit || 'unit', category, brand, price: resolvedPrice })
+    .then((res) => {
+      if (res && res.data && res.data.id) {
+        const freshLocal = getLocalItems();
+        const itemToUpdate = freshLocal.find(i => i.id === newItem.id);
+        if (itemToUpdate) {
+          itemToUpdate.id = res.data.id;
+          saveLocalItems(freshLocal);
+        }
+      }
+    })
+    .catch((err) => {
+      console.warn("Server DB sync background note:", err.message);
+    });
 
   return newItem;
 }
