@@ -47,7 +47,7 @@ export default function SuggestionsCard({ refreshKey, onItemAdded }) {
         const suggList = Array.isArray(suggData) ? suggData : (suggData?.suggestions || []);
         const currentItems = listData?.items || (Array.isArray(listData) ? listData : []);
         setSuggestions(suggList);
-        setCurrentListNames(new Set(currentItems.map((i) => (i.name || "").toLowerCase())));
+        setCurrentListNames(new Set(currentItems.map((i) => (i?.name ? String(i.name) : String(i || "")).toLowerCase())));
         setError(null);
       } catch (err) {
         setError(err.message);

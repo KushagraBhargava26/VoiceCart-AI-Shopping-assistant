@@ -140,7 +140,17 @@ const RULES = [
 ];
 
 export function getItemIcon(itemName, category) {
-  const cleanName = (itemName || '').toLowerCase();
+  let cleanName = "";
+  if (typeof itemName === "string") {
+    cleanName = itemName.toLowerCase();
+  } else if (itemName && typeof itemName === "object") {
+    cleanName = (itemName.name || itemName.title || "").toString().toLowerCase();
+    if (!category && itemName.category) {
+      category = itemName.category;
+    }
+  } else {
+    cleanName = String(itemName || "").toLowerCase();
+  }
 
   for (const [regex, icon] of RULES) {
     if (regex.test(cleanName)) {
