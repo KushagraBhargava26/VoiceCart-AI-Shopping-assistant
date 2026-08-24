@@ -252,12 +252,94 @@ function stripFillers(text) {
   return str.trim();
 }
 
+const NAV_PAGES = [
+  {
+    target: "categories",
+    name: "Categories",
+    hindiName: "Categories",
+    patterns: [
+      /categories|category|shreniyan|shreni|shreniya|कैटेगरी|कैटेगरीज|श्रेणियां|श्रेणी/i
+    ]
+  },
+  {
+    target: "shopping-list",
+    name: "Shopping List",
+    hindiName: "Shopping List",
+    patterns: [
+      /shopping list|my list|the list|cart|shopping cart|meri list|लिस्ट|कार्ट|शॉपिंग लिस्ट/i
+    ]
+  },
+  {
+    target: "suggestions",
+    name: "Smart Suggestions",
+    hindiName: "Smart Suggestions",
+    patterns: [
+      /suggestions|suggestion|recommendations|recommend|sujhav|smart suggestions|सुझाव|सजेशन/i
+    ]
+  },
+  {
+    target: "history",
+    name: "History",
+    hindiName: "History",
+    patterns: [
+      /history|purchase history|order history|past orders|itihas|purani shopping|हिस्ट्री|इतिहास/i
+    ]
+  },
+  {
+    target: "search",
+    name: "Search",
+    hindiName: "Search",
+    patterns: [
+      /^search$|^search page$|search page|khoj|सर्च पेज/i
+    ]
+  },
+  {
+    target: "home",
+    name: "Home",
+    hindiName: "Home",
+    patterns: [
+      /home|dashboard|main page|home page|होम|डैशबोर्ड/i
+    ]
+  }
+];
+
+function checkNavigationCommand(rawTranscript, isHi) {
+  const text = (rawTranscript || "").toLowerCase().trim();
+
+  const isNavIntent = /(?:open|kholo|dikhao|show|go to|chalo|le chalo|par jao|khol do|kholna|khol|view|navigate|खोलो|दिखाओ|जाओ|खोल दो|खोल)/i.test(text);
+
+  if (!isNavIntent && !/^(categories|category|shopping list|history|suggestions|home|dashboard)$/i.test(text)) {
+    return null;
+  }
+
+  for (const page of NAV_PAGES) {
+    if (page.patterns.some(p => p.test(text))) {
+      return {
+        action: "NAVIGATE_PAGE",
+        target: page.target,
+        pageName: page.name,
+        spokenResponse: isHi
+          ? `${page.hindiName} page khol rahe hain.`
+          : `Opening ${page.name}.`
+      };
+    }
+  }
+
+  return null;
+}
+
 export function parseClientVoiceCommand(rawTranscript, language) {
   const transcript = (rawTranscript || "").trim();
   const lower = transcript.toLowerCase();
   const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(aur|daalo|karo|chahiye|do|daal)\b/i.test(lower);
 
-  // 1. REMOVE action
+  // 1. PAGE NAVIGATION action (e.g. "open categories", "categories kholo", "open shopping list")
+  const navMatch = checkNavigationCommand(transcript, isHi);
+  if (navMatch) {
+    return navMatch;
+  }
+
+  // 2. REMOVE action
   if (/(remove|delete|hata|nikal|drop|mita|hatao|हटाओ|हटा दो|निकालो|हटा)/i.test(transcript)) {
     let cleanName = stripFillers(transcript);
     cleanName = cleanName.replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b|(हटाओ|हटा दो|हटा देना|हटा|निकालो|लिस्ट से)/gi, "").trim() || "Item";

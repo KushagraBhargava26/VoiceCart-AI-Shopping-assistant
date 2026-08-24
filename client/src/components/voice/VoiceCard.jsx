@@ -130,6 +130,11 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
         if (audioFeedback && spokenText) speakResponse(spokenText, language);
         if (status === "success") onCommandProcessed?.();
+        if (result.action === "NAVIGATE_PAGE") {
+          setTimeout(() => {
+            onNavigate?.(result.target);
+          }, 350);
+        }
         // BUG-04 FIX: handle both NAVIGATE_SEARCH and SEARCH_PRODUCT
         if (result.action === "NAVIGATE_SEARCH" || result.action === "SEARCH_PRODUCT") {
           onSearchCommand?.(result.query);
@@ -265,12 +270,22 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         const totalFormatted = `₹${Math.round(result.cartTotal)}`;
         const note = result.partialTotal ? (isHi ? " (kuch items ki price catalog mein nahi hai)" : " (some items have no catalog price)") : "";
         const lines = [`💰 ${totalFormatted}${note}`, isHi ? `${result.itemCount} items hain aapki list mein` : `${result.itemCount} item(s) in your list`];
-        const spokenText = isHi
-          ? `Aapka estimated bill ${totalFormatted} hai.`
-          : `Your estimated cart total is ${totalFormatted}.`;
         return {
           status: "success",
           heading: isHi ? "Cart ka estimated total" : "Estimated cart total",
+          lines,
+          spokenText,
+        };
+      }
+      case "NAVIGATE_PAGE": {
+        const pageName = result.pageName || "Page";
+        const lines = [
+          isHi ? `✓ ${pageName} khol rahe hain...` : `✓ Navigating to ${pageName}...`
+        ];
+        const spokenText = result.spokenResponse || (isHi ? `${pageName} page khol rahe hain.` : `Opening ${pageName}.`);
+        return {
+          status: "success",
+          heading: isHi ? "Page khol rahe hain" : "Navigating",
           lines,
           spokenText,
         };

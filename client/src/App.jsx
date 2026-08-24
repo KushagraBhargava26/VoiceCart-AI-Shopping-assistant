@@ -154,7 +154,12 @@ function AppContent() {
           path="/shopping-list"
           element={
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-5">
+                <VoiceCard
+                  onCommandProcessed={triggerRefresh}
+                  onSearchCommand={handleVoiceSearch}
+                  onNavigate={handleSidebarNavigate}
+                />
                 <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
               </div>
               <div>
@@ -166,7 +171,12 @@ function AppContent() {
         <Route
           path="/suggestions"
           element={
-            <div className="max-w-xl">
+            <div className="max-w-xl space-y-5">
+              <VoiceCard
+                onCommandProcessed={triggerRefresh}
+                onSearchCommand={handleVoiceSearch}
+                onNavigate={handleSidebarNavigate}
+              />
               <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
             </div>
           }
@@ -174,7 +184,12 @@ function AppContent() {
         <Route
           path="/search"
           element={
-            <div className="max-w-xl">
+            <div className="max-w-xl space-y-5">
+              <VoiceCard
+                onCommandProcessed={triggerRefresh}
+                onSearchCommand={handleVoiceSearch}
+                onNavigate={handleSidebarNavigate}
+              />
               <SearchCard
                 onItemAdded={triggerRefresh}
                 presetQuery={searchPresetQuery}
@@ -186,7 +201,12 @@ function AppContent() {
         <Route
           path="/history"
           element={
-            <div className="max-w-xl">
+            <div className="max-w-xl space-y-5">
+              <VoiceCard
+                onCommandProcessed={triggerRefresh}
+                onSearchCommand={handleVoiceSearch}
+                onNavigate={handleSidebarNavigate}
+              />
               <HistoryCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
             </div>
           }
@@ -194,7 +214,12 @@ function AppContent() {
         <Route
           path="/categories"
           element={
-            <div className="max-w-2xl">
+            <div className="max-w-2xl space-y-5">
+              <VoiceCard
+                onCommandProcessed={triggerRefresh}
+                onSearchCommand={handleVoiceSearch}
+                onNavigate={handleSidebarNavigate}
+              />
               <CategoriesCard onSelectCategory={handleSelectCategory} onItemAdded={triggerRefresh} />
             </div>
           }
