@@ -13,6 +13,15 @@ const NUMBER_WORDS = {
   ten: 10, das: 10
 };
 
+const VALID_UNITS = [
+  "l", "lt", "ltr", "lit", "liter", "litres", "litre",
+  "kg", "kilo", "kilogram", "kilograms",
+  "g", "gm", "gms", "gram", "grams",
+  "ml", "pack", "packet", "packets", "botal", "bottle", "bottles",
+  "pcs", "pc", "piece", "pieces", "box", "dozen", "dozens", "dazan",
+  "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"
+];
+
 const SPECIFIC_BRANDS = [
   "amul", "britannia", "nestle", "nestlé", "bisleri", "colgate", "dettol",
   "tata", "nescafe", "nescafé", "modern", "fortune", "saffola", "pears",
@@ -155,10 +164,11 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     if (digitMatch && digitMatch[3] && digitMatch[3].trim().length > 0) {
       quantity = parseInt(digitMatch[1], 10);
       const possibleUnit = (digitMatch[2] || "").toLowerCase();
-      if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(possibleUnit)) {
+      if (VALID_UNITS.includes(possibleUnit)) {
         unit = possibleUnit;
         itemName = digitMatch[3].trim();
       } else {
+        unit = "unit";
         itemName = `${digitMatch[2] || ""} ${digitMatch[3] || ""}`.trim();
       }
     } else {
@@ -167,16 +177,17 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       if (NUMBER_WORDS[firstWord]) {
         quantity = NUMBER_WORDS[firstWord];
         const secondWord = (words[1] || "").toLowerCase();
-        if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(secondWord)) {
+        if (VALID_UNITS.includes(secondWord)) {
           unit = secondWord;
           itemName = words.slice(2).join(" ");
         } else {
+          unit = "unit";
           itemName = words.slice(1).join(" ");
         }
       }
     }
 
-    itemName = stripFillers(itemName.replace(/^(of|ka|ki|ke)\s+/i, "")) || seg;
+    itemName = itemName.replace(/^(of|ka|ki|ke)\s+/i, "").trim() || seg;
 
     return {
       name: itemName,
