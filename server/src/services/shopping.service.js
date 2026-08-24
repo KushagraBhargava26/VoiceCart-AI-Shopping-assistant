@@ -204,6 +204,21 @@ export async function deleteShoppingItem(id) {
     throw error;
   }
 
+  // Automatically log to shoppingHistory so history dynamically updates on every item completion/removal
+  try {
+    await prisma.shoppingHistory.create({
+      data: {
+        userId: DEFAULT_USER_ID,
+        itemName: existing.name,
+        quantity: existing.quantity,
+        unit: existing.unit,
+        category: existing.category,
+      },
+    });
+  } catch (historyErr) {
+    console.warn("Could not log to history:", historyErr.message);
+  }
+
   await prisma.shoppingItem.delete({ where: { id } });
 }
 

@@ -68,7 +68,7 @@ function App() {
 
         {activeView === "history" && (
           <div className="max-w-xl">
-            <HistoryCard refreshKey={refreshKey} />
+            <HistoryCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
           </div>
         )}
 
