@@ -275,6 +275,23 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           spokenText,
         };
       }
+      case "ITEM_NOT_AVAILABLE": {
+        const item = result.item || "Yeh item";
+        const lines = [
+          isHi
+            ? `"${item}" hamare grocery store par uplabdh nahi hai.`
+            : `"${item}" is not available in our grocery catalog.`
+        ];
+        const spokenText = isHi
+          ? `Maaf kijiye, ${item} hamare store par uplabdh nahi hai.`
+          : `Sorry, ${item} is not available in our store.`;
+        return {
+          status: "partial",
+          heading: isHi ? "Item uplabdh nahi hai" : "Item Not Available",
+          lines,
+          spokenText,
+        };
+      }
       case "CLARIFICATION_REQUIRED":
         return {
           status: "partial",

@@ -118,12 +118,11 @@ export async function processVoiceCommand(transcript) {
         };
       }
 
-      // No catalog match — add generically
-      const items = await executeAddItem(command.items);
+      // No catalog match found in database — notify user that item is not available
       return {
-        action: "ADD_ITEM",
-        items,
-        message: `Added ${command.items.map((i) => i.name).join(", ")}.`,
+        action: "ITEM_NOT_AVAILABLE",
+        item: command.items.map((i) => i.name).join(", "),
+        message: `Sorry, ${command.items.map((i) => i.name).join(", ")} is not available in our store catalog.`,
       };
     }
 

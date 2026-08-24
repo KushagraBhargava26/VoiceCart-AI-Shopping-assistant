@@ -17,11 +17,11 @@ const NUMBER_WORDS = {
 };
 
 const VALID_UNITS = [
-  "l", "lt", "ltr", "lit", "liter", "litres", "litre", "liters",
-  "kg", "kilo", "kilogram", "kilograms", "kgs",
-  "g", "gm", "gms", "gram", "grams",
-  "ml", "pack", "packet", "packets", "botal", "bottle", "bottles",
-  "pcs", "pc", "piece", "pieces", "box", "boxes", "dozen", "dozens", "dazan", "darjan",
+  "litres", "liters", "litre", "liter", "ltr", "lt", "lit", "l",
+  "kilograms", "kilogram", "kilos", "kilo", "kgs", "kg",
+  "grams", "gram", "gms", "gm", "g",
+  "ml", "packets", "packet", "packs", "pack", "bottles", "bottle", "botal",
+  "pieces", "piece", "pcs", "pc", "boxes", "box", "dozens", "dozen", "dazan", "darjan",
   "लीटर", "लिटर", "ली", "किलो", "किग्रा", "केजी", "ग्राम", "ग्रा", "पैकेट", "पैक", "बोतल", "पीस", "दर्जन", "डिब्बा", "डब्बा"
 ];
 
@@ -68,42 +68,6 @@ const NOISE_WORDS = [
   "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "item", "unit",
   "mere dost", "dost", "bhai", "yaar", "bhaiya",
   "ऐड", "डालो", "करो", "लाओ"
-];
-
-const PHONETIC_CORRECTIONS = {
-  "ande": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "anda": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "egg": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "eggs": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "अंडे": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "अंडा": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
-  "amul butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
-  "butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
-  "makkan": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
-  "मक्खन": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
-  "pani": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
-  "paani": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
-  "water": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
-  "पानी": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
-  "dahi": { name: "Mother Dairy Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 },
-  "curd": { name: "Mother Dairy Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 },
-  "दही": { name: "Mother Dairy Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 },
-  "paneer": { name: "Amul Malai Paneer 200g", category: "Dairy & Eggs", unit: "pack", price: 95 },
-  "पनीर": { name: "Amul Malai Paneer 200g", category: "Dairy & Eggs", unit: "pack", price: 95 },
-  "rice": { name: "Basmati Rice 1kg", category: "Grains & Staples", unit: "kg", price: 65 },
-  "chawal": { name: "Basmati Rice 1kg", category: "Grains & Staples", unit: "kg", price: 65 },
-  "चावल": { name: "Basmati Rice 1kg", category: "Grains & Staples", unit: "kg", price: 65 },
-  "atta": { name: "Aashirvaad Whole Wheat Atta 1kg", category: "Grains & Staples", unit: "kg", price: 55 },
-  "आटा": { name: "Aashirvaad Whole Wheat Atta 1kg", category: "Grains & Staples", unit: "kg", price: 55 },
-  "namak": { name: "Tata Salt 1kg", category: "Cooking & Spices", unit: "kg", price: 28 },
-  "salt": { name: "Tata Salt 1kg", category: "Cooking & Spices", unit: "kg", price: 28 },
-  "नमक": { name: "Tata Salt 1kg", category: "Cooking & Spices", unit: "kg", price: 28 }
-};
-
-const SPECIFIC_BRANDS = [
-  "amul", "britannia", "nestle", "nestlé", "bisleri", "colgate", "dettol",
-  "tata", "nescafe", "nescafé", "modern", "fortune", "saffola", "pears",
-  "taj mahal", "mother dairy", "haldiram", "lays", "lay's", "kurkure", "almond"
 ];
 
 const MILK_OPTIONS = [
@@ -174,12 +138,97 @@ const GENERIC_CHOICES = {
   "सरसों तेल": OIL_OPTIONS
 };
 
+// Comprehensive Store Catalog Dataset & Keyword Index
+const CATALOG_KEYWORDS = [
+  // Dairy & Eggs
+  { keywords: ["milk", "doodh", "dudh", "दूध", "almond milk", "taaza", "cream", "buttermilk", "chaas", "lassi"], isGeneric: true, genericKey: "milk" },
+  { keywords: ["egg", "eggs", "anda", "ande", "अंडे", "अंडा", "farm fresh eggs"], defaultItem: { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 } },
+  { keywords: ["bread", "ब्रेड", "पाव", "bun", "brown bread", "wheat bread"], isGeneric: true, genericKey: "bread" },
+  { keywords: ["butter", "makkan", "makkhan", "मक्खन", "amul butter"], defaultItem: { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 } },
+  { keywords: ["paneer", "पनीर", "malai paneer"], defaultItem: { name: "Amul Fresh Malai Paneer 200g", category: "Dairy & Eggs", unit: "pack", price: 95 } },
+  { keywords: ["dahi", "curd", "दही", "yogurt", "epigamia"], defaultItem: { name: "Mother Dairy Classic Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 } },
+  { keywords: ["cheese", "चीज", "cheese slices", "cheese cubes"], defaultItem: { name: "Milky Mist Cheese Slices 200g", category: "Dairy & Eggs", unit: "pack", price: 145 } },
+  { keywords: ["ghee", "घी", "cow ghee", "desi ghee"], defaultItem: { name: "Amul Pure Cow Ghee 500ml", category: "Cooking & Spices", unit: "botal", price: 325 } },
+
+  // Bakery & Snacks
+  { keywords: ["chips", "lays", "potato chips", "चिप्स"], defaultItem: { name: "Lay's Magic Masala Potato Chips 50g", category: "Bakery & Snacks", unit: "pack", price: 20 } },
+  { keywords: ["kurkure", "कुरकुरे"], defaultItem: { name: "Kurkure Masala Munch 90g", category: "Bakery & Snacks", unit: "pack", price: 20 } },
+  { keywords: ["biscuit", "biscuits", "बिस्किट", "oreo", "parle", "milk bikis", "dark fantasy", "cookie", "cookies"], defaultItem: { name: "Britannia Milk Bikis 150g", category: "Bakery & Snacks", unit: "pack", price: 30 } },
+  { keywords: ["bhujia", "sev", "namkeen", "भुजिया", "नमकीन"], defaultItem: { name: "Haldiram Bhujia Sev 200g", category: "Bakery & Snacks", unit: "pack", price: 65 } },
+  { keywords: ["popcorn", "पॉपकॉर्न"], defaultItem: { name: "Act II Butter Popcorn 130g", category: "Bakery & Snacks", unit: "pack", price: 45 } },
+  { keywords: ["soan papdi", "सोन पापड़ी"], defaultItem: { name: "Haldiram Soan Papdi 500g", category: "Bakery & Snacks", unit: "pack", price: 140 } },
+
+  // Fruits & Vegetables
+  { keywords: ["apple", "apples", "seb", "सेब"], defaultItem: { name: "Fresh Shimla Apples 1kg", category: "Fruits & Vegetables", unit: "kg", price: 140 } },
+  { keywords: ["banana", "bananas", "kela", "kele", "केला", "केले"], defaultItem: { name: "Fresh Robusta Bananas 1 Dozen", category: "Fruits & Vegetables", unit: "dozen", price: 60 } },
+  { keywords: ["tomato", "tomatoes", "tamatar", "टमाटर"], defaultItem: { name: "Hybrid Red Tomatoes 1kg", category: "Fruits & Vegetables", unit: "kg", price: 35 } },
+  { keywords: ["potato", "potatoes", "aloo", "आलू"], defaultItem: { name: "Fresh Jyoti Potatoes 1kg", category: "Fruits & Vegetables", unit: "kg", price: 30 } },
+  { keywords: ["capsicum", "shimla mirch", "शिमला मिर्च"], defaultItem: { name: "Fresh Green Capsicum 250g", category: "Fruits & Vegetables", unit: "pack", price: 25 } },
+  { keywords: ["onion", "onions", "pyaaz", "pyaz", "प्याज"], defaultItem: { name: "Nashik Red Onions 1kg", category: "Fruits & Vegetables", unit: "kg", price: 40 } },
+  { keywords: ["chilli", "chillies", "mirch", "hari mirch", "हरी मिर्च"], defaultItem: { name: "Fresh Green Chillies 100g", category: "Fruits & Vegetables", unit: "pack", price: 15 } },
+  { keywords: ["ginger", "adrak", "अदरक"], defaultItem: { name: "Fresh Ginger Adrak 250g", category: "Fruits & Vegetables", unit: "pack", price: 35 } },
+  { keywords: ["garlic", "lahsun", "लहसुन"], defaultItem: { name: "Fresh Garlic Lahsun 250g", category: "Fruits & Vegetables", unit: "pack", price: 65 } },
+  { keywords: ["lemon", "lemons", "nimbu", "नींबू"], defaultItem: { name: "Fresh Indian Lemons (Pack of 4)", category: "Fruits & Vegetables", unit: "pack", price: 20 } },
+  { keywords: ["spinach", "palak", "पालक"], defaultItem: { name: "Fresh Spinach Palak 250g", category: "Fruits & Vegetables", unit: "pack", price: 25 } },
+  { keywords: ["broccoli", "ब्रोकोली", "gobhi", "phool gobhi"], defaultItem: { name: "Fresh Broccoli 500g", category: "Fruits & Vegetables", unit: "pack", price: 80 } },
+  { keywords: ["watermelon", "tarbuz", "tarbooj", "तरबूज"], defaultItem: { name: "Fresh Seedless Watermelon 2kg", category: "Fruits & Vegetables", unit: "piece", price: 90 } },
+  { keywords: ["papaya", "papita", "पपीता"], defaultItem: { name: "Fresh Papaya 1kg", category: "Fruits & Vegetables", unit: "kg", price: 55 } },
+  { keywords: ["pomegranate", "anaar", "anar", "अनार"], defaultItem: { name: "Fresh Pomegranate Anaar 1kg", category: "Fruits & Vegetables", unit: "kg", price: 180 } },
+  { keywords: ["mango", "aam", "आम", "alphonso"], defaultItem: { name: "Fresh Alphonsos / Mangoes 1kg", category: "Fruits & Vegetables", unit: "kg", price: 150 } },
+
+  // Cooking & Spices
+  { keywords: ["oil", "tel", "तेल", "mustard oil", "sunflower oil", "cooking oil", "fortune oil", "saffola"], isGeneric: true, genericKey: "oil" },
+  { keywords: ["salt", "namak", "नमक", "tata salt"], defaultItem: { name: "Tata Salt Vacuum Evaporated 1kg", category: "Cooking & Spices", unit: "kg", price: 28 } },
+  { keywords: ["turmeric", "haldi", "हल्दी"], defaultItem: { name: "Catch Turmeric Haldi Powder 100g", category: "Cooking & Spices", unit: "pack", price: 42 } },
+  { keywords: ["chilli powder", "lal mirch", "लाल मिर्च पाउडर"], defaultItem: { name: "Everest Red Chilli Powder 100g", category: "Cooking & Spices", unit: "pack", price: 52 } },
+  { keywords: ["dhaniya", "coriander powder", "धनिया पाउडर"], defaultItem: { name: "Everest Coriander Dhaniya Powder 100g", category: "Cooking & Spices", unit: "pack", price: 38 } },
+  { keywords: ["garam masala", "masala", "kitchen king", "मसाला", "गरम मसाला"], defaultItem: { name: "MDH Garam Masala 100g", category: "Cooking & Spices", unit: "pack", price: 90 } },
+  { keywords: ["jeera", "cumin", "जीरा"], defaultItem: { name: "Catch Cumin Jeera Whole 100g", category: "Cooking & Spices", unit: "pack", price: 75 } },
+  { keywords: ["jaggery", "gur", "gud", "गुड़"], defaultItem: { name: "Organic Tattva Jaggery Powder 500g", category: "Cooking & Spices", unit: "pack", price: 65 } },
+  { keywords: ["sugar", "cheeni", "shakkar", "चीनी", "शक्कर"], defaultItem: { name: "Pure Refined Sugar 1kg", category: "Cooking & Spices", unit: "kg", price: 48 } },
+  { keywords: ["sauce", "ketchup", "soy sauce", "सॉस"], defaultItem: { name: "Ching's Secret Dark Soy Sauce 210g", category: "Cooking & Spices", unit: "botal", price: 55 } },
+
+  // Beverages & Tea
+  { keywords: ["tea", "chai", "चाय", "चाय पत्ती", "taj mahal", "tata tea"], isGeneric: true, genericKey: "tea" },
+  { keywords: ["coffee", "कॉफी", "कॉफ़ी", "nescafe", "bru"], isGeneric: true, genericKey: "coffee" },
+  { keywords: ["water", "pani", "paani", "पानी", "bisleri"], defaultItem: { name: "Bisleri Mineral Water 1L", category: "Beverages & Tea", unit: "L", price: 20 } },
+  { keywords: ["coconut water", "nariyal pani", "नारियल पानी"], defaultItem: { name: "Paper Boat Tender Coconut Water 200ml", category: "Beverages & Tea", unit: "botal", price: 50 } },
+  { keywords: ["juice", "frooti", "real juice", "orange juice", "mango juice", "जूस"], defaultItem: { name: "Real Fruit Power Orange Juice 1L", category: "Beverages & Tea", unit: "L", price: 115 } },
+  { keywords: ["coke", "coca cola", "coca-cola", "pepsi", "sprite", "soda", "cold drink", "red bull"], defaultItem: { name: "Coca-Cola Soft Drink 750ml", category: "Beverages & Tea", unit: "botal", price: 45 } },
+
+  // Personal Care
+  { keywords: ["toothpaste", "colgate", "pepsodent", "टूथपेस्ट"], isGeneric: true, genericKey: "toothpaste" },
+  { keywords: ["soap", "sabun", "साबुन", "dettol", "pears", "lux"], isGeneric: true, genericKey: "soap" },
+  { keywords: ["shampoo", "dove", "head & shoulders", "शैम्पू"], defaultItem: { name: "Dove Intense Repair Shampoo 180ml", category: "Personal Care", unit: "botal", price: 165 } },
+  { keywords: ["hair oil", "parachute", "nariyal tel"], defaultItem: { name: "Parachute 100% Pure Coconut Hair Oil 200ml", category: "Personal Care", unit: "botal", price: 90 } },
+  { keywords: ["moisturizer", "nivea", "face wash", "body lotion", "vaseline"], defaultItem: { name: "Nivea Soft Light Moisturizer 100ml", category: "Personal Care", unit: "pack", price: 185 } },
+  { keywords: ["sanitizer", "savlon", "सैनिटाइजर"], defaultItem: { name: "Savlon Hand Sanitizer 100ml", category: "Personal Care", unit: "botal", price: 50 } },
+  { keywords: ["razor", "blade", "gillette"], defaultItem: { name: "Gillette Mach3 Razor Cartridge", category: "Personal Care", unit: "pack", price: 250 } },
+
+  // Grains & Pulses
+  { keywords: ["rice", "chawal", "चावल", "basmati", "india gate", "daawat"], defaultItem: { name: "Daawat Rozana Super Basmati Rice 1kg", category: "Grains & Pulses", unit: "kg", price: 95 } },
+  { keywords: ["atta", "aashirvaad", "flour", "wheat", "आटा"], defaultItem: { name: "Aashirvaad Whole Wheat Atta 5kg", category: "Grains & Pulses", unit: "kg", price: 235 } },
+  { keywords: ["toor dal", "chana dal", "dal", "dhal", "दाल", "arhar dal"], defaultItem: { name: "Tata Sampann Unpolished Toor Dal 1kg", category: "Grains & Pulses", unit: "kg", price: 165 } },
+  { keywords: ["poha", "पोहा"], defaultItem: { name: "Fortune Thick Poha 500g", category: "Grains & Pulses", unit: "pack", price: 42 } },
+  { keywords: ["rajma", "राजमा"], defaultItem: { name: "Rajma Chitra Red Kidney Beans 500g", category: "Grains & Pulses", unit: "pack", price: 85 } }
+];
+
+export function findCatalogMatch(itemName) {
+  const clean = (itemName || "").toLowerCase().trim();
+  for (const entry of CATALOG_KEYWORDS) {
+    if (entry.keywords.some(kw => clean === kw || clean.includes(kw) || kw.includes(clean))) {
+      return entry;
+    }
+  }
+  return null;
+}
+
 function stripFillers(text) {
   let str = (text || "").trim();
   let changed = true;
   let iterations = 0;
 
-  while (changed && iterations < 5) {
+  while (changed && iterations < 6) {
     changed = false;
     iterations++;
 
@@ -251,22 +300,12 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
   const segments = cleanBody.split(/\b(?:and|aur|tatha|evam|plus|,)\b|(?:और|तथा)/i).map(s => s.trim()).filter(Boolean);
 
-  let parsedItems = (segments.length ? segments : [cleanBody]).map((seg) => {
+  let parsedItems = [];
+
+  for (const seg of (segments.length ? segments : [cleanBody])) {
     let quantity = 1;
     let unit = "unit";
     let itemName = seg.trim();
-
-    // Check direct phonetic dictionary first (for eggs, butter, rice, salt, etc.)
-    const directLookup = PHONETIC_CORRECTIONS[itemName.toLowerCase()];
-    if (directLookup) {
-      return {
-        name: directLookup.name,
-        quantity: 1,
-        unit: directLookup.unit,
-        category: directLookup.category,
-        price: directLookup.price
-      };
-    }
 
     // Check digit prefix with explicit valid unit or without unit
     const unitPattern = VALID_UNITS.join("|");
@@ -312,30 +351,49 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
     itemName = itemName.replace(/^(of|ka|ki|ke|का|की|के)\s+/i, "").trim() || seg;
 
-    // Check phonetic lookup again after unit/quantity extraction
-    const postLookup = PHONETIC_CORRECTIONS[itemName.toLowerCase()];
-    if (postLookup) {
+    // Check catalog availability
+    const catalogMatch = findCatalogMatch(itemName);
+
+    if (!catalogMatch) {
+      // Item does NOT exist in catalog/dataset — tell user it is not available!
       return {
-        name: postLookup.name,
-        quantity: quantity || 1,
-        unit: unit !== "unit" ? unit : postLookup.unit,
-        category: postLookup.category,
-        price: postLookup.price
+        action: "ITEM_NOT_AVAILABLE",
+        item: itemName,
+        message: isHi ? `"${itemName}" hamare grocery store par uplabdh nahi hai.` : `"${itemName}" is not available in our grocery catalog.`,
+        spokenResponse: isHi ? `Maaf kijiye, ${itemName} hamare store par uplabdh nahi hai.` : `Sorry, ${itemName} is not available in our store catalog.`
       };
     }
 
-    return {
-      name: itemName,
-      quantity: quantity || 1,
-      unit: unit || "unit"
-    };
-  }).filter(item => {
-    if (!item.name || item.name.trim().length < 2) return false;
-    const clean = item.name.trim().toLowerCase();
-    if (NOISE_WORDS.includes(clean)) return false;
-    if (CONVERSATIONAL_PHRASES.includes(clean)) return false;
-    return true;
-  });
+    // Generic item that needs user product selection
+    if (catalogMatch.isGeneric && GENERIC_CHOICES[catalogMatch.genericKey]) {
+      const choices = GENERIC_CHOICES[catalogMatch.genericKey];
+      return {
+        action: "PRODUCT_SELECTION_REQUIRED",
+        pendingItems: [{ name: itemName, quantity, unit }],
+        results: choices,
+        spokenResponse: isHi
+          ? `Aapke liye ${choices.length} options hain. Kaunsa product add karna chahenge?`
+          : `I found ${choices.length} options. Which product would you like to add?`
+      };
+    }
+
+    // Catalog matched item
+    if (catalogMatch.defaultItem) {
+      parsedItems.push({
+        name: catalogMatch.defaultItem.name,
+        quantity: quantity || 1,
+        unit: unit !== "unit" ? unit : catalogMatch.defaultItem.unit,
+        category: catalogMatch.defaultItem.category,
+        price: catalogMatch.defaultItem.price
+      });
+    } else {
+      parsedItems.push({
+        name: itemName,
+        quantity: quantity || 1,
+        unit: unit || "unit"
+      });
+    }
+  }
 
   // Fallback if parsing returned empty
   if (parsedItems.length === 0) {
@@ -344,26 +402,6 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       message: isHi ? "Kya add karna chahte hain? Kripya grocery item ka naam bolein, jaise 1 litre doodh ya 6 ande." : "What item would you like to add? Please specify a grocery item, like 1 litre milk or 6 eggs.",
       spokenResponse: isHi ? "Kripya grocery item ka naam bolein, jaise 1 litre doodh." : "Please specify what item you would like to add."
     };
-  }
-
-  // CHOICE DISAMBIGUATION
-  if (parsedItems.length === 1 && !parsedItems[0].category) {
-    const rawName = parsedItems[0].name.toLowerCase();
-    const hasBrand = SPECIFIC_BRANDS.some(b => rawName.includes(b));
-    if (!hasBrand) {
-      const matchedKey = Object.keys(GENERIC_CHOICES).find(k => rawName.includes(k) || k.includes(rawName));
-      if (matchedKey) {
-        const choices = GENERIC_CHOICES[matchedKey];
-        return {
-          action: "PRODUCT_SELECTION_REQUIRED",
-          pendingItems: parsedItems,
-          results: choices,
-          spokenResponse: isHi
-            ? `Aapke liye ${choices.length} options hain. Kaunsa product add karna chahenge?`
-            : `I found ${choices.length} options. Which product would you like to add?`
-        };
-      }
-    }
   }
 
   const itemNames = parsedItems.map(i => `${i.quantity > 1 ? `${i.quantity} ${i.unit} ` : ""}${i.name}`).join(isHi ? " aur " : " and ");
@@ -380,13 +418,13 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
 export async function sendVoiceCommand(transcript, language) {
   const clientParsed = parseClientVoiceCommand(transcript, language);
-  if (clientParsed && (clientParsed.action === "PRODUCT_SELECTION_REQUIRED" || clientParsed.action === "CLARIFICATION_REQUIRED")) {
+  if (clientParsed && (clientParsed.action === "PRODUCT_SELECTION_REQUIRED" || clientParsed.action === "CLARIFICATION_REQUIRED" || clientParsed.action === "ITEM_NOT_AVAILABLE")) {
     return clientParsed;
   }
 
   try {
     const res = await post('/commands', { transcript, language });
-    if (res && res.action && (res.action === "PRODUCT_SELECTION_REQUIRED" || res.action === "CLARIFICATION_REQUIRED")) {
+    if (res && res.action && (res.action === "PRODUCT_SELECTION_REQUIRED" || res.action === "CLARIFICATION_REQUIRED" || res.action === "ITEM_NOT_AVAILABLE")) {
       return res;
     }
     if (res && res.action && (res.items || res.item || res.results)) {
