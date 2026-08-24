@@ -115,7 +115,7 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text-main flex flex-col justify-between p-4 sm:p-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0e14] text-[#e7ecf3] flex flex-col justify-between p-4 sm:p-8 relative overflow-x-hidden">
       {/* Background Glow Overlay */}
       <div className="absolute top-0 right-0 w-[600px] h-[500px] bg-gradient-to-bl from-purple/15 via-teal/10 to-transparent blur-3xl pointer-events-none" />
 
