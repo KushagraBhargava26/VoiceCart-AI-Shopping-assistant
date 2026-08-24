@@ -92,6 +92,16 @@ const FALLBACK_CATALOG = [
   { id: "p78", name: "Savlon Hand Sanitizer 100ml", brand: "Savlon", category: "Personal Care", price: 50, currency: "₹", size: "100ml" },
   { id: "p79", name: "Gillette Mach3 Razor Cartridge", brand: "Gillette", category: "Personal Care", price: 250, currency: "₹", size: "1 unit" },
   { id: "p80", name: "Vaseline Healthy Bright Body Lotion 200ml", brand: "Vaseline", category: "Personal Care", price: 210, currency: "₹", size: "200ml" },
+
+  // 🌾 Grains & Pulses (8 items)
+  { id: "p81", name: "Daawat Rozana Super Basmati Rice 1kg", brand: "Daawat", category: "Grains & Pulses", price: 95, currency: "₹", size: "1kg" },
+  { id: "p82", name: "Fortune Everyday Basmati Rice 5kg", brand: "Fortune", category: "Grains & Pulses", price: 375, currency: "₹", size: "5kg" },
+  { id: "p83", name: "India Gate Feast Rozana Rice 1kg", brand: "India Gate", category: "Grains & Pulses", price: 110, currency: "₹", size: "1kg" },
+  { id: "p84", name: "Aashirvaad Whole Wheat Atta 5kg", brand: "Aashirvaad", category: "Grains & Pulses", price: 235, currency: "₹", size: "5kg" },
+  { id: "p85", name: "Tata Sampann Unpolished Toor Dal 1kg", brand: "Tata Sampann", category: "Grains & Pulses", price: 165, currency: "₹", size: "1kg" },
+  { id: "p86", name: "Fortune Thick Poha 500g", brand: "Fortune", category: "Grains & Pulses", price: 42, currency: "₹", size: "500g" },
+  { id: "p87", name: "Tata Sampann Chana Dal 1kg", brand: "Tata Sampann", category: "Grains & Pulses", price: 115, currency: "₹", size: "1kg" },
+  { id: "p88", name: "Rajma Chitra Red Kidney Beans 500g", brand: "Organic", category: "Grains & Pulses", price: 85, currency: "₹", size: "500g" }
 ];
 
 export async function searchProducts({ query, brand, minPrice, maxPrice, size, category }) {
@@ -113,12 +123,16 @@ export async function searchProducts({ query, brand, minPrice, maxPrice, size, c
     const q = (query || "").toLowerCase().trim();
     const cat = (category || "").toLowerCase().trim();
 
+    if (!q && !cat) {
+      return { results: FALLBACK_CATALOG.slice(0, 10) };
+    }
+
     const filtered = FALLBACK_CATALOG.filter((p) => {
       const matchCat = !cat || p.category.toLowerCase().includes(cat) || cat.includes(p.category.toLowerCase().split(' ')[0]);
       const matchQuery = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
 
-    return { results: filtered.length > 0 ? filtered : FALLBACK_CATALOG.slice(0, 10) };
+    return { results: filtered };
   }
 }
