@@ -200,17 +200,16 @@ export async function requestForgotPassword(email) {
   passwordResetOTPs.set(normalizedEmail, { otp, expiresAt });
   console.log(`[AUTH] Password Reset OTP for ${normalizedEmail}: ${otp}`);
 
-  // Dispatch real email notification via Nodemailer
-  const emailRes = await sendPasswordResetEmail({
+  // Dispatch real email notification via Nodemailer in background (non-blocking for instant UI response)
+  sendPasswordResetEmail({
     toEmail: normalizedEmail,
     otp,
     name: user.name,
-  });
+  }).catch((err) => console.error("[ASYNC EMAIL ERR]:", err.message));
 
   return {
     email: normalizedEmail,
     message: "Verification code sent to your email.",
-    previewUrl: emailRes?.previewUrl,
   };
 }
 
