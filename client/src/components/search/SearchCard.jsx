@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
 import { searchProducts } from "../../services/search.service.js";
 import { addItem } from "../../services/shoppingList.service.js";
+import { getItemIcon } from "../../utils/itemIcons.js";
 
 const POPULAR_SEARCHES = ["Milk", "Eggs", "Rice", "Apples", "Bread", "Bananas", "Toothpaste"];
+
+function ErrorBanner({ message }) {
+  return (
+    <div className="flex items-start gap-2 border border-red-400/30 bg-red-400/5 rounded-lg px-3 py-2.5 mt-3 text-[12px]">
+      <span className="text-red-400 mt-px">✕</span>
+      <p className="text-red-400">{message}</p>
+    </div>
+  );
+}
 
 export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
   const [query, setQuery] = useState("");
@@ -23,6 +33,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
       setResults(data.results);
     } catch (err) {
       setError(err.message);
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -46,6 +57,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
         setResults(data.results);
       } catch (err) {
         setError(err.message);
+        setResults([]);
       } finally {
         setLoading(false);
       }
@@ -76,7 +88,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
   }
 
   return (
-    <div className="bg-panel border border-border-soft rounded-xl p-4.5">
+    <div className="bg-panel border border-border-soft rounded-xl p-5">
       <div className="flex items-center gap-2 text-[13px] font-semibold mb-3">🔍 Search Products</div>
 
       <form onSubmit={handleSubmit} className="mb-3 flex gap-2">
@@ -96,7 +108,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
               setHasSearched(false);
               setError(null);
             }}
-            className="text-[12px] text-text-dim border border-border-soft px-3 rounded-md hover:bg-panel-2">
+            className="text-[12px] text-text-dim border border-border-soft px-3 rounded-md hover:bg-panel-2 transition-colors">
             ✕ Clear
           </button>
         )}
@@ -110,19 +122,26 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
               <button
                 key={term}
                 onClick={() => runSearch(term)}
-                className="text-[11px] border border-purple/30 text-purple px-3 py-1 rounded-full hover:bg-purple/10">
-                {term}
+                className="text-[11px] border border-purple/30 text-purple px-3 py-1 rounded-full hover:bg-purple/10 transition-colors">
+                {getItemIcon(term)} {term}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {loading && <p className="text-text-faint text-[12px] mt-3">Searching...</p>}
-      {error && <p className="text-red-400 text-[12px] mt-3">{error}</p>}
+      {loading && (
+        <div className="flex items-center gap-2 mt-3">
+          <span className="w-4 h-4 rounded-full border-2 border-teal border-t-transparent animate-spin" />
+          <p className="text-text-dim text-[12px]">Searching...</p>
+        </div>
+      )}
+
+      {error && <ErrorBanner message={error} />}
       {successMessage && <p className="text-teal text-[12px] mt-3">✓ {successMessage}</p>}
-      {hasSearched && !loading && results.length === 0 && !error && (
-        <p className="text-text-faint text-[12px] mt-3">No products found for "{query}".</p>
+
+      {hasSearched && !loading && !error && results.length === 0 && (
+        <p className="text-text-dim text-[12px] mt-3">No products found for "{query}". Try a different search term.</p>
       )}
 
       {results.length > 0 && (
@@ -131,18 +150,21 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
             <div
               key={product.id}
               className="flex items-center justify-between py-2.5 border-b border-border-soft last:border-none text-[13px]">
-              <div>
-                <div className="font-medium">
-                  {product.name} {product.brand && <span className="text-text-dim">— {product.brand}</span>}
-                </div>
-                <div className="text-[11px] text-text-faint">
-                  {product.category} {product.size && `• ${product.size}`}
-                  {product.price && ` • ${product.currency} ${product.price}`}
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{getItemIcon(product.name, product.category)}</span>
+                <div>
+                  <div className="font-medium">
+                    {product.name} {product.brand && <span className="text-text-dim">— {product.brand}</span>}
+                  </div>
+                  <div className="text-[11px] text-text-faint">
+                    {product.category} {product.size && `• ${product.size}`}
+                    {product.price && ` • ${product.currency} ${product.price}`}
+                  </div>
                 </div>
               </div>
               <button
                 onClick={() => handleAddToList(product)}
-                className="text-[11px] px-3 py-1 rounded-md border border-teal-dim text-teal hover:bg-teal/10">
+                className="text-[11px] px-3 py-1 rounded-md border border-teal-dim text-teal hover:bg-teal/10 transition-colors">
                 + Add
               </button>
             </div>

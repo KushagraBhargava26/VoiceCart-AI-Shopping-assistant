@@ -1,10 +1,27 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
+const TIMEOUT_MS = 10_000;
+
 async function request(path, options = {}) {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      ...options,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('The request timed out. Please check your connection and try again.');
+    }
+    // TypeError: Failed to fetch — server is down or unreachable
+    throw new Error("Can't reach the server. Please check your connection and try again.");
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = await response.json();
 

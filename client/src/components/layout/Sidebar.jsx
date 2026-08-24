@@ -14,17 +14,17 @@ export default function Sidebar({ activeView, onNavigate }) {
 
   function handleNavigate(key) {
     onNavigate(key);
-    setIsOpen(false); // auto-close on mobile after selecting
+    setIsOpen(false);
   }
 
   return (
     <>
       {/* Mobile top bar with hamburger toggle */}
-
       <div className="md:hidden fixed top-0 left-0 right-0 flex items-center justify-between bg-panel border-b border-border-soft px-4 py-3 z-30">
-        {" "}
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal to-purple flex items-center justify-center text-sm">🛒</div>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal to-purple flex items-center justify-center text-sm">
+            🛒
+          </div>
           <span className="text-[14px] font-semibold">VoiceCart</span>
         </div>
         <button onClick={() => setIsOpen(true)} className="text-text-main text-xl px-2" aria-label="Open menu">
@@ -47,7 +47,9 @@ export default function Sidebar({ activeView, onNavigate }) {
         <div>
           <div className="flex items-center justify-between mb-8 px-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal to-purple flex items-center justify-center text-base">🛒</div>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal to-purple flex items-center justify-center text-base">
+                🛒
+              </div>
               <span className="text-[15px] font-semibold tracking-tight">VoiceCart</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="md:hidden text-text-dim text-lg" aria-label="Close menu">
