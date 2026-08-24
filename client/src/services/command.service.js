@@ -31,12 +31,12 @@ const GENERIC_CHOICES = {
   milk: MILK_OPTIONS,
   doodh: MILK_OPTIONS,
   dudh: MILK_OPTIONS,
-  दूध: MILK_OPTIONS,
+  "दूध": MILK_OPTIONS,
   bread: [
     { id: "p13", name: "Britannia Brown Bread 400g", brand: "Britannia", category: "Bakery & Snacks", price: 45, size: "400g" },
     { id: "p22", name: "Modern Whole Wheat Bread 400g", brand: "Modern", category: "Bakery & Snacks", price: 48, size: "400g" }
   ],
-  ब्रेड: [
+  "ब्रेड": [
     { id: "p13", name: "Britannia Brown Bread 400g", brand: "Britannia", category: "Bakery & Snacks", price: 45, size: "400g" },
     { id: "p22", name: "Modern Whole Wheat Bread 400g", brand: "Modern", category: "Bakery & Snacks", price: 48, size: "400g" }
   ],
@@ -76,21 +76,46 @@ const GENERIC_CHOICES = {
   ]
 };
 
-const SUFFIX_REGEX = /(?:\s+(?:to|in|on|into)\s+(?:my|the|a)?\s*(?:cart|shopping list|list)|to my cart|to cart|to my list|to list|in my cart|in cart|in my list|in list|on my list|list mein|list me|cart mein|cart me|kar do|daal do|bhej do|karo|daalo|add|ऐड|ऐड करो|ऐड कर दो|कर दो|chahiye))+$/gi;
+function stripFillers(text) {
+  let str = (text || "").trim();
+  const prefixes = [
+    "i want to add", "i need to add", "please add", "add", "put", "buy", "need", "want", "get",
+    "i want", "i need", "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "lano", "le aao",
+    "ऐड करो", "ऐड कर दो", "ऐड", "डालो", "डाल दो", "चाहिए", "कीजिये"
+  ];
 
-const PREFIX_REGEX = /^(?:add|put|buy|need|want|get|i want|i need|please|chahiye|daal|daalo|karo|bhejo|rakho|laao|lano|le aao|ऐड|ऐड करो|ऐड कर दो|डालो|डाल दो|चाहिए|कीजिये|करो)\s+/gi;
+  for (const p of prefixes) {
+    if (str.toLowerCase().startsWith(p.toLowerCase() + " ")) {
+      str = str.slice(p.length).trim();
+      break;
+    }
+  }
+
+  const suffixes = [
+    "to my shopping list", "to my cart", "to the cart", "to the list", "to cart", "to list",
+    "in my cart", "in cart", "in my list", "in list", "on my list",
+    "list mein", "list me", "cart mein", "cart me",
+    "kar do", "daal do", "bhej do", "karo", "daalo", "chahiye",
+    "ऐड करो", "ऐड कर दो", "ऐड", "कर दो"
+  ];
+
+  for (const s of suffixes) {
+    if (str.toLowerCase().endsWith(" " + s.toLowerCase()) || str.toLowerCase() === s.toLowerCase()) {
+      str = str.slice(0, str.length - s.length).trim();
+    }
+  }
+
+  return str.trim();
+}
 
 export function parseClientVoiceCommand(rawTranscript, language) {
   const transcript = (rawTranscript || "").trim();
   const lower = transcript.toLowerCase();
 
-  // 1. Check for REMOVE action (Hindi: hata, nikal, drop, remove)
+  // 1. Check for REMOVE action
   if (/\b(remove|delete|hata|nikal|drop|mita|hatao)\b/i.test(lower)) {
-    const cleanName = transcript
-      .replace(PREFIX_REGEX, "")
-      .replace(SUFFIX_REGEX, "")
-      .replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b/gi, "")
-      .trim() || "Item";
+    let cleanName = stripFillers(transcript);
+    cleanName = cleanName.replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b/gi, "").trim() || "Item";
 
     const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(hata|nikal|karo)\b/i.test(lower);
     return {
@@ -100,27 +125,21 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     };
   }
 
-  // 2. Check for SEARCH action (Hindi: search, find, dhundho, dikhao)
+  // 2. Check for SEARCH action
   if (/\b(search|find|dhundho|dikhao|look for|kholo)\b/i.test(lower)) {
-    const query = transcript
-      .replace(PREFIX_REGEX, "")
-      .replace(SUFFIX_REGEX, "")
-      .replace(/\b(search|find|dhundho|dikhao|look for|kholo|karo|please|under \d+|rupees|rupaye)\b/gi, "")
-      .trim() || transcript;
+    let query = stripFillers(transcript);
+    query = query.replace(/\b(search|find|dhundho|dikhao|look for|kholo|karo|please|under \d+|rupees|rupaye)\b/gi, "").trim() || transcript;
 
-    const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(dhundho|dikhao|karo)\b/i.test(lower);
+    const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript);
     return {
-      action: "SEARCH_PRODUCT",
+      action: "NAVIGATE_SEARCH",
       query,
-      spokenResponse: isHi ? `${query} search kiya ja raha hai.` : `Searching for ${query}.`
+      spokenResponse: isHi ? `${query} search kar rahe hain.` : `Searching for ${query}.`
     };
   }
 
-  // 3. Multi-item ADD action (split by "and", "aur", "tatha", "evam", "plus", ",")
-  const cleanBody = transcript
-    .replace(PREFIX_REGEX, "")
-    .replace(SUFFIX_REGEX, "")
-    .trim();
+  // 3. Multi-item & Hindi/English NLP extraction for ADD_ITEM
+  const cleanBody = stripFillers(transcript);
 
   const segments = (cleanBody || transcript).split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
 
@@ -154,11 +173,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       }
     }
 
-    itemName = itemName
-      .replace(/^(of|ka|ki|ke)\s+/i, "")
-      .replace(SUFFIX_REGEX, "")
-      .replace(PREFIX_REGEX, "")
-      .trim() || seg;
+    itemName = stripFillers(itemName.replace(/^(of|ka|ki|ke)\s+/i, "")) || seg;
 
     return {
       name: itemName,
@@ -169,7 +184,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
   const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(aur|daalo|karo|chahiye)\b/i.test(lower);
 
-  // CHOICE DISAMBIGUATION: If single item and generic term spoken without specific brand
+  // CHOICE DISAMBIGUATION
   if (parsedItems.length === 1) {
     const rawName = parsedItems[0].name.toLowerCase();
     const hasBrand = SPECIFIC_BRANDS.some(b => rawName.includes(b));
@@ -189,7 +204,6 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     }
   }
 
-  // Standard direct add for specific or non-ambiguous items
   const itemNames = parsedItems.map(i => `${i.quantity > 1 ? `${i.quantity} ${i.unit} ` : ""}${i.name}`).join(isHi ? " aur " : " and ");
 
   return {
@@ -203,7 +217,6 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 }
 
 export async function sendVoiceCommand(transcript, language) {
-  // Check client-side choice selection requirement first for instant interactive prompt
   const clientParsed = parseClientVoiceCommand(transcript, language);
   if (clientParsed && clientParsed.action === "PRODUCT_SELECTION_REQUIRED") {
     return clientParsed;

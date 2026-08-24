@@ -1,7 +1,11 @@
 function getBaseUrl() {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
-  }
+  try {
+    const envUrl = typeof import.meta !== "undefined" && import.meta && import.meta.env ? import.meta.env.VITE_API_BASE_URL : null;
+    if (envUrl) {
+      return envUrl.replace(/\/$/, "");
+    }
+  } catch (e) {}
+
   if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
     return "https://voicecart-backend.onrender.com/api/v1";
   }
@@ -15,7 +19,9 @@ const TIMEOUT_MS = 60_000;
 
 // Background ping to wake up Render server on page load
 if (typeof window !== "undefined") {
-  fetch(`${BASE_URL}/health`).catch(() => {});
+  try {
+    fetch(`${BASE_URL}/health`).catch(() => {});
+  } catch (e) {}
 }
 
 async function request(path, options = {}) {
