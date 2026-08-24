@@ -190,7 +190,7 @@ function AppContent() {
           path="/categories"
           element={
             <div className="max-w-2xl">
-              <CategoriesCard onSelectCategory={handleSelectCategory} />
+              <CategoriesCard onSelectCategory={handleSelectCategory} onItemAdded={triggerRefresh} />
             </div>
           }
         />
