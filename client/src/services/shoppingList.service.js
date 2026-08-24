@@ -2,24 +2,50 @@ import { get, post, patch, del } from './api.js';
 
 const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
 
-const PRICE_LOOKUP = {
-  milk: 68,
-  bread: 45,
-  apples: 140,
-  water: 20,
-  eggs: 55,
-  butter: 58,
-  paneer: 95,
-  dahi: 40,
-  chips: 20,
-  tea: 240,
-  coffee: 175,
-  oil: 155,
-  salt: 28,
-  toothpaste: 110,
-  soap: 48,
-  shampoo: 165
-};
+const PRICE_LOOKUP = [
+  { keywords: ["water", "bisleri", "pani", "paani"], price: 20 },
+  { keywords: ["milk", "doodh", "dudh"], price: 68 },
+  { keywords: ["bread", "pav", "bun"], price: 45 },
+  { keywords: ["egg", "anda", "ande"], price: 55 },
+  { keywords: ["butter", "makkan"], price: 58 },
+  { keywords: ["paneer"], price: 95 },
+  { keywords: ["dahi", "curd"], price: 40 },
+  { keywords: ["ghee"], price: 325 },
+  { keywords: ["apple", "seb"], price: 140 },
+  { keywords: ["banana", "kela", "kele"], price: 60 },
+  { keywords: ["tomato", "tamatar"], price: 35 },
+  { keywords: ["potato", "aloo"], price: 30 },
+  { keywords: ["onion", "pyaaz", "pyaz"], price: 40 },
+  { keywords: ["capsicum", "shimla mirch"], price: 25 },
+  { keywords: ["chips", "kurkure", "namkeen", "biscuits", "cookie", "oreo"], price: 20 },
+  { keywords: ["tea", "chai"], price: 240 },
+  { keywords: ["coffee"], price: 175 },
+  { keywords: ["juice"], price: 115 },
+  { keywords: ["coca", "pepsi", "sprite", "soda", "cold drink"], price: 45 },
+  { keywords: ["oil", "mustard oil", "tel"], price: 155 },
+  { keywords: ["salt", "namak"], price: 28 },
+  { keywords: ["toothpaste", "colgate", "pepsodent"], price: 110 },
+  { keywords: ["soap", "dettol", "lux"], price: 48 },
+  { keywords: ["shampoo", "dove", "pantene"], price: 165 },
+  { keywords: ["sanitizer"], price: 50 },
+  { keywords: ["face wash"], price: 140 },
+  { keywords: ["rice", "chawal"], price: 65 },
+  { keywords: ["atta", "flour"], price: 55 }
+];
+
+export function resolveItemPrice(itemName, providedPrice) {
+  if (providedPrice && Number(providedPrice) > 0) return Number(providedPrice);
+
+  const clean = (itemName || "").toLowerCase().trim();
+  for (const entry of PRICE_LOOKUP) {
+    if (entry.keywords.some((kw) => clean.includes(kw))) {
+      return entry.price;
+    }
+  }
+
+  // Realistic default MRP for unmatched items
+  return 25;
+}
 
 function getLocalItems() {
   try {
@@ -42,23 +68,25 @@ export async function fetchShoppingList() {
     if (res && res.items && Array.isArray(res.items)) {
       const local = getLocalItems();
       const combinedMap = new Map();
-      [...res.items, ...local].forEach(item => combinedMap.set(item.id || item.name, item));
+      [...res.items, ...local].forEach((item) => {
+        const itemPrice = resolveItemPrice(item.name, item.price ?? item.estimatedPrice);
+        combinedMap.set(item.id || item.name, { ...item, price: itemPrice, estimatedPrice: itemPrice });
+      });
       const combined = Array.from(combinedMap.values());
-      const cartTotal = combined.reduce((sum, item) => {
-        const p = item.price ?? item.estimatedPrice ?? PRICE_LOOKUP[(item.name || "").toLowerCase()] ?? 50;
-        return sum + (Number(p) * Number(item.quantity || 1));
-      }, 0);
+      const cartTotal = combined.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
       return { items: combined, cartTotal, currency: "INR" };
     }
     throw new Error("No server items");
   } catch (err) {
     const local = getLocalItems();
-    const cartTotal = local.reduce((sum, item) => {
-      const p = item.price ?? item.estimatedPrice ?? PRICE_LOOKUP[(item.name || "").toLowerCase()] ?? 50;
-      return sum + (Number(p) * Number(item.quantity || 1));
-    }, 0);
+    const resolvedLocal = local.map((item) => {
+      const existingPrice = (item.price === 60 || item.price === 45) ? undefined : (item.price ?? item.estimatedPrice);
+      const itemPrice = resolveItemPrice(item.name, existingPrice);
+      return { ...item, price: itemPrice, estimatedPrice: itemPrice };
+    });
+    const cartTotal = resolvedLocal.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
     return {
-      items: local,
+      items: resolvedLocal,
       cartTotal,
       currency: "INR"
     };
@@ -66,17 +94,7 @@ export async function fetchShoppingList() {
 }
 
 export async function addItem({ name, quantity, unit, category, brand, price }) {
-  const cleanName = (name || "").toLowerCase();
-  let matchedPrice = price;
-  if (!matchedPrice) {
-    for (const [key, val] of Object.entries(PRICE_LOOKUP)) {
-      if (cleanName.includes(key)) {
-        matchedPrice = val;
-        break;
-      }
-    }
-  }
-  const resolvedPrice = matchedPrice || 45;
+  const resolvedPrice = resolveItemPrice(name, price);
 
   const newItem = {
     id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -91,9 +109,11 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   };
 
   const local = getLocalItems();
-  const existingIdx = local.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
+  const existingIdx = local.findIndex((i) => i.name.toLowerCase() === name.toLowerCase());
   if (existingIdx >= 0) {
-    local[existingIdx].quantity += (quantity || 1);
+    local[existingIdx].quantity += quantity || 1;
+    local[existingIdx].price = resolvedPrice;
+    local[existingIdx].estimatedPrice = resolvedPrice;
   } else {
     local.push(newItem);
   }
@@ -110,7 +130,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
 
 export async function updateItem(id, updates) {
   const local = getLocalItems();
-  const idx = local.findIndex(i => i.id === id);
+  const idx = local.findIndex((i) => i.id === id);
   if (idx >= 0) {
     local[idx] = { ...local[idx], ...updates };
     saveLocalItems(local);
@@ -125,7 +145,7 @@ export async function updateItem(id, updates) {
 
 export async function deleteItem(id) {
   const local = getLocalItems();
-  const filtered = local.filter(i => i.id !== id);
+  const filtered = local.filter((i) => i.id !== id);
   saveLocalItems(filtered);
 
   try {
