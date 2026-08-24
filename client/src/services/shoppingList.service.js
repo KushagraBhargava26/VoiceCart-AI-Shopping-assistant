@@ -6,6 +6,8 @@ const LOCAL_HISTORY_KEY = "voicecart_local_history_store";
 const NOISE_WORDS = [
   "add", "adb", "ad", "app", "adding", "put", "buy", "need", "want", "get",
   "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "item", "unit",
+  "mere dost", "dost", "bhai", "yaar", "bhaiya", "bro", "bhai mere", "bhai mere dost",
+  "kya haal hai", "kaise ho", "hello", "hi", "test", "testing",
   "1", "2", "3", "4", "5", "l", "litre", "litr e", "kg", "g", "gm", "ml"
 ];
 
@@ -13,7 +15,7 @@ export function isInvalidItemName(name) {
   if (!name) return true;
   const clean = name.toString().trim().toLowerCase();
   if (clean.length < 2) return true;
-  if (NOISE_WORDS.includes(clean)) return true;
+  if (NOISE_WORDS.some(w => clean === w || clean === `bhai ${w}` || clean.startsWith(`${w} `))) return true;
   return false;
 }
 

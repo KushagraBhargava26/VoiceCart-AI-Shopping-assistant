@@ -26,34 +26,57 @@ const VALID_UNITS = [
 ];
 
 const PREFIXES = [
+  "bhai mere dost", "bhai mere", "bhaiya", "bhai", "bro", "yaar", "dost",
+  "arre bhai", "arre yaara", "arre yaar", "arre", "are", "arey", "abey", "abe",
+  "ek kaam kar", "ek kaam karo", "zara", "zara sa", "kripya", "please",
+  "sun na", "suno na", "suno", "sun",
   "i want to add", "i need to add", "please add", "can you add", "could you add",
   "add to cart", "add to list", "add me", "add", "put", "buy", "need", "want", "get",
-  "i want", "i need", "please", "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "lano", "le aao",
-  "mujhe chahiye", "mujhe", "kripya", "zara", "zara sa",
-  "ऐड करो", "ऐड कर दो", "ऐड कर", "ऐड", "डालो", "डाल दो", "डाल", "चाहिए", "कीजिये", "कृपया", "मुझे चाहिए", "मुझे", "जरा", "लाओ", "ले आओ"
+  "i want", "i need", "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "lano", "le aao",
+  "mujhe chahiye", "mujhe",
+  "भाई मेरे", "भैया", "भाई", "यार", "दोस्त", "अरे", "सुनो", "सुन", "कृपया", "जरा",
+  "ऐड करो", "ऐड कर दो", "ऐड कर", "ऐड", "डालो", "डाल दो", "डाल", "चाहिए", "कीजिये", "मुझे चाहिए", "मुझे", "लाओ", "ले आओ"
 ];
 
 const SUFFIXES = [
   "to my shopping list", "to my cart", "to the cart", "to the list", "to cart", "to list",
   "in my cart", "in cart", "in my list", "in list", "on my list",
   "list mein", "list me", "cart mein", "cart me", "bag mein", "bag me",
-  "add kar do", "add karo", "add kr do", "add kro", "add",
-  "kar do", "karo", "kr do", "kro", "daal do", "daalo", "dal do", "dalo", "daal dena", "daalna",
-  "bhej do", "rakho", "laao", "lao", "lana", "le aao", "le aana", "chahiye", "kharidna hai", "lena hai",
+  "add kar do", "add kar de", "add karo", "add kr do", "add krde", "add kro", "add kar", "add kr", "add",
+  "daal kar do", "daal kar", "daal do", "daal de", "daalo", "dal do", "dalo", "daal dena", "daalna", "daal",
+  "kar do", "kar de", "karo", "kr do", "kr de", "kro", "kar", "kr", "de", "do",
+  "bhej do", "rakho", "laao", "la de", "la do", "lao", "lana", "le aao", "le aa", "le aana", "chahiye", "kharidna hai", "lena hai",
   "joḍo", "jodo", "jod do",
   "लिस्ट में डालो", "लिस्ट में डाल दो", "लिस्ट में", "कार्ट में डालो", "कार्ट में",
-  "ऐड करो", "ऐड कर दो", "ऐड कर", "ऐड", "कर दो", "करो", "कीजिये",
-  "डाल दो", "डालो", "डाल देना", "डालना", "डाल", "लाओ", "ले आओ", "लाना",
+  "ऐड करो", "ऐड कर दो", "ऐड कर दे", "ऐड कर", "ऐड", "कर दो", "कर दे", "करो", "कर", "कीजिये",
+  "डाल दो", "डाल दे", "डालो", "डाल देना", "डालना", "डाल", "लाओ", "ले आओ", "ले आ", "ला दे", "लाना",
   "चाहिए", "खरीदना है", "लेना है", "जोड़ो", "जोड़ दो", "रखो"
+];
+
+const CONVERSATIONAL_PHRASES = [
+  "mere dost", "dost", "yaar", "bhai", "bhaiya", "bro", "bhai mere", "bhai mere dost",
+  "kya haal hai", "kaise ho", "kaise ho bhai", "kya chal raha hai", "kuch bhi",
+  "hello", "hi", "hey", "testing", "test", "bol", "bol na", "boliye",
+  "kya", "kuch nahi", "kuch nhi", "nahi", "nhi", "haan", "suno", "sun",
+  "theek hai", "thik hai", "ok", "okay", "bye", "good morning", "good night", "kya ho raha hai",
+  "kaisa hai", "kaisa h", "theek h", "thik h", "accha", "acha",
+  "मेरे दोस्त", "दोस्त", "यार", "भाई", "भैया", "कैसे हो", "क्या हाल है", "हेलो", "हाय", "टेस्ट", "ठीक है", "अच्छा"
 ];
 
 const NOISE_WORDS = [
   "add", "adb", "ad", "app", "adding", "put", "buy", "need", "want", "get",
   "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "item", "unit",
+  "mere dost", "dost", "bhai", "yaar", "bhaiya",
   "ऐड", "डालो", "करो", "लाओ"
 ];
 
 const PHONETIC_CORRECTIONS = {
+  "ande": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
+  "anda": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
+  "egg": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
+  "eggs": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
+  "अंडे": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
+  "अंडा": { name: "Farm Fresh Eggs (6 pcs)", category: "Dairy & Eggs", unit: "pack", price: 55 },
   "amul butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
   "butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
   "makkan": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
@@ -212,12 +235,17 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   // 3. Multi-item & Hindi/English NLP extraction for ADD_ITEM
   const cleanBody = stripFillers(transcript) || transcript;
 
-  // NOISE / CLARIFICATION GUARD
-  if (!cleanBody || cleanBody.length < 2 || NOISE_WORDS.includes(cleanBody.toLowerCase())) {
+  // NOISE & CONVERSATIONAL GUARD
+  const cleanLower = cleanBody.toLowerCase().trim();
+  const isConversational = CONVERSATIONAL_PHRASES.some(phrase => {
+    return cleanLower === phrase || (cleanLower.includes(phrase) && cleanLower.length <= phrase.length + 4);
+  });
+
+  if (isConversational || !cleanBody || cleanBody.length < 2 || NOISE_WORDS.includes(cleanLower)) {
     return {
       action: "CLARIFICATION_REQUIRED",
-      message: isHi ? "Kya add karna chahte hain? Kripya item ka naam bolein, jaise 1 litre milk ya 2 kg chawal." : "What item would you like to add? Please specify the item name, like 1 litre milk or 2 kg rice.",
-      spokenResponse: isHi ? "Kripya item ka naam saaf bolein, jaise 1 litre milk." : "Please specify what item you would like to add."
+      message: isHi ? "Kya add karna chahte hain? Kripya grocery item ka naam bolein, jaise 1 litre doodh ya 6 ande." : "What item would you like to add? Please specify a grocery item, like 1 litre milk or 6 eggs.",
+      spokenResponse: isHi ? "Kripya grocery item ka naam bolein, jaise 1 litre doodh ya 6 ande." : "Please specify a grocery item, like 1 litre milk or 6 eggs."
     };
   }
 
@@ -228,7 +256,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     let unit = "unit";
     let itemName = seg.trim();
 
-    // Check direct phonetic dictionary first (for butter, rice, salt, etc.)
+    // Check direct phonetic dictionary first (for eggs, butter, rice, salt, etc.)
     const directLookup = PHONETIC_CORRECTIONS[itemName.toLowerCase()];
     if (directLookup) {
       return {
@@ -240,23 +268,32 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       };
     }
 
-    // Check digit prefix first: e.g. "1 litre milk", "2 पैकेट ब्रेड", "१ किलो चावल"
-    const digitMatch = seg.match(/^(\d+|[०-९]+)\s*([a-zA-Z\u0900-\u097F]+)?\s*(?:of|ka|ki|ke|का|की|के)?\s*(.+)$/i);
-    if (digitMatch && digitMatch[3] && digitMatch[3].trim().length > 0) {
-      let rawDigit = digitMatch[1];
+    // Check digit prefix with explicit valid unit or without unit
+    const unitPattern = VALID_UNITS.join("|");
+    const digitWithUnitRegex = new RegExp(`^(\\d+|[०-९]+)\\s*(${unitPattern})\\s*(?:of|ka|ki|ke|का|की|के)?\\s*(.+)$`, 'i');
+    const digitWithoutUnitRegex = new RegExp(`^(\\d+|[०-९]+)\\s*(?:of|ka|ki|ke|का|की|के)?\\s*(.+)$`, 'i');
+
+    const mWith = seg.match(digitWithUnitRegex);
+    const mWithout = seg.match(digitWithoutUnitRegex);
+
+    if (mWith && mWith[3]) {
+      let rawDigit = mWith[1];
       const devanagariMap = { '०': 0, '१': 1, '२': 2, '३': 3, '४': 4, '५': 5, '६': 6, '७': 7, '८': 8, '९': 9 };
       if (/[०-९]/.test(rawDigit)) {
         rawDigit = rawDigit.split('').map(d => devanagariMap[d] !== undefined ? devanagariMap[d] : d).join('');
       }
       quantity = parseFloat(rawDigit) || 1;
-      const possibleUnit = (digitMatch[2] || "").toLowerCase();
-      if (VALID_UNITS.includes(possibleUnit)) {
-        unit = possibleUnit;
-        itemName = digitMatch[3].trim();
-      } else {
-        unit = "unit";
-        itemName = `${digitMatch[2] || ""} ${digitMatch[3] || ""}`.trim();
+      unit = mWith[2].toLowerCase();
+      itemName = mWith[3].trim();
+    } else if (mWithout && mWithout[2]) {
+      let rawDigit = mWithout[1];
+      const devanagariMap = { '०': 0, '१': 1, '२': 2, '३': 3, '४': 4, '५': 5, '६': 6, '७': 7, '८': 8, '९': 9 };
+      if (/[०-९]/.test(rawDigit)) {
+        rawDigit = rawDigit.split('').map(d => devanagariMap[d] !== undefined ? devanagariMap[d] : d).join('');
       }
+      quantity = parseFloat(rawDigit) || 1;
+      unit = "unit";
+      itemName = mWithout[2].trim();
     } else {
       const words = seg.split(/\s+/);
       const firstWord = (words[0] || "").toLowerCase();
@@ -275,19 +312,37 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
     itemName = itemName.replace(/^(of|ka|ki|ke|का|की|के)\s+/i, "").trim() || seg;
 
+    // Check phonetic lookup again after unit/quantity extraction
+    const postLookup = PHONETIC_CORRECTIONS[itemName.toLowerCase()];
+    if (postLookup) {
+      return {
+        name: postLookup.name,
+        quantity: quantity || 1,
+        unit: unit !== "unit" ? unit : postLookup.unit,
+        category: postLookup.category,
+        price: postLookup.price
+      };
+    }
+
     return {
       name: itemName,
       quantity: quantity || 1,
       unit: unit || "unit"
     };
-  }).filter(item => item.name && item.name.trim().length > 0 && !NOISE_WORDS.includes(item.name.trim().toLowerCase()));
+  }).filter(item => {
+    if (!item.name || item.name.trim().length < 2) return false;
+    const clean = item.name.trim().toLowerCase();
+    if (NOISE_WORDS.includes(clean)) return false;
+    if (CONVERSATIONAL_PHRASES.includes(clean)) return false;
+    return true;
+  });
 
   // Fallback if parsing returned empty
   if (parsedItems.length === 0) {
     return {
       action: "CLARIFICATION_REQUIRED",
-      message: isHi ? "Kya add karna chahte hain? Kripya item ka naam bolein, jaise 1 litre milk." : "What item would you like to add? Please specify the item name.",
-      spokenResponse: isHi ? "Kripya item ka naam saaf bolein." : "Please specify what item you would like to add."
+      message: isHi ? "Kya add karna chahte hain? Kripya grocery item ka naam bolein, jaise 1 litre doodh ya 6 ande." : "What item would you like to add? Please specify a grocery item, like 1 litre milk or 6 eggs.",
+      spokenResponse: isHi ? "Kripya grocery item ka naam bolein, jaise 1 litre doodh." : "Please specify what item you would like to add."
     };
   }
 
