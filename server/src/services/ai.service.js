@@ -82,46 +82,39 @@ function fallbackInterpret(transcript) {
   const text = (transcript || "").trim().toLowerCase();
 
   // Cart total
-  if (/bill|total|kitna hoga|how much|cart total|mera total|kharcha|estimate/i.test(text)) {
+  if (/bill|total|kitna hoga|how much|cart total|mera total|kharcha|estimate|कितना हुआ|टोटल|बिल/i.test(text)) {
     return { action: "GET_CART_TOTAL" };
   }
 
   // Suggestions
-  if (/what should i buy|suggestions|kya khareedu|recommend|sujhav/i.test(text)) {
+  if (/what should i buy|suggestions|kya khareedu|recommend|sujhav|सुझाव|क्या खरीदें|क्या लूं/i.test(text)) {
     return { action: "GET_SUGGESTIONS" };
   }
 
-  // Remove item — check BEFORE add so Hindi "X ko remove kar do" never becomes ADD_ITEM
-  // Covers: "remove X", "remove 2 X", "X ko remove kar do", "hata do X", "X hata do", "X nikalo", "delete X"
-  const removeKeywords = /\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/i;
-  if (removeKeywords.test(text)) {
-    // Strip remove keywords first
+  // Remove item
+  if (/(remove|delete|hata|nikal|drop|mita|hatao|हटाओ|हटा दो|निकालो|हटा)/i.test(text)) {
     let cleaned = text
-      .replace(/\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/gi, "")
+      .replace(/\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b|(हटाओ|हटा दो|हटा देना|हटा|निकालो|लिस्ट से)/gi, "")
       .replace(/\b(ko|se|list|meri|my|the|please|karo|kar do|dena|se hata|list se|from)\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
 
     if (cleaned.length > 0) {
-      // Try to extract a leading quantity + unit from the cleaned text
-      // e.g. "2 bread", "1 litre of milk", "3 kg rice"
-      const qtyMatch = cleaned.match(/^(\d+(?:\.\d+)?)\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit|litre)?\s*(?:of\s+)?(.+)$/i);
+      const qtyMatch = cleaned.match(/^(\d+|[०-९]+)\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit|litre|लीटर|किलो|पैकेट|बोतल|पीस)?\s*(?:of\s+)?(.+)$/i);
       if (qtyMatch) {
-        const quantity = parseFloat(qtyMatch[1]);
-        const unit = qtyMatch[2] || "pieces";
+        const quantity = parseFloat(qtyMatch[1]) || 1;
+        const unit = qtyMatch[2] || "unit";
         const name = qtyMatch[3].trim();
         return { action: "REMOVE_ITEM", items: [{ name, quantity, unit }] };
       }
-      // No quantity — remove the whole item
       return { action: "REMOVE_ITEM", items: [{ name: cleaned }] };
     }
   }
 
-  // Search product (e.g. "search toothpaste", "toothpaste dikhao", "milk dhoondo", "find bread")
-  const searchKeywords = /\b(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|dekhiye)\b/i;
-  if (searchKeywords.test(text) && !/\b(add|buy|get|lana|daalo|hatao|remove|delete)\b/i.test(text)) {
+  // Search product
+  if (/(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|dekhiye|सर्च|ढूंढो|दिखाओ|खोजो)/i.test(text) && !/(add|buy|get|lana|daalo|hatao|remove|delete|डालो|ऐड)/i.test(text)) {
     const query = text
-      .replace(/\b(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|karo|dekhiye|me|please)\b/gi, "")
+      .replace(/\b(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|karo|dekhiye|me|please)\b|(सर्च|ढूंढो|दिखाओ|खोजो|करो)/gi, "")
       .replace(/under\s+\d+|below\s+\d+/i, "")
       .trim();
     if (query.length > 0) {
@@ -132,20 +125,60 @@ function fallbackInterpret(transcript) {
     }
   }
 
-  // Add item — only reach here if no remove or search keywords matched
-  const addMatch = text.match(/(?:add|buy|get|lana|daalo|chahiye|add karo|list mein daalo)?\s*(\d+(?:\.\d+)?)*\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit)?\s*(?:of\s+)?(.+?)(?:\s+(?:add karo|daalo|to my list|in my list|list mein|chahiye|kharidna hai))*$/i);
+  // Add item
+  let cleaned = text;
+  const prefixes = [
+    "i want to add", "i need to add", "please add", "can you add", "add to cart", "add to list", "add me", "add", "put", "buy", "need", "want", "get",
+    "mujhe chahiye", "mujhe", "kripya", "zara",
+    "ऐड करो", "ऐड कर दो", "ऐड कर", "ऐड", "डालो", "डाल दो", "डाल", "चाहिए", "कीजिये", "कृपया", "मुझे चाहिए", "मुझे", "जरा", "लाओ", "ले आओ"
+  ];
+  const suffixes = [
+    "to my shopping list", "to my cart", "to the cart", "to the list", "to cart", "to list",
+    "in my cart", "in cart", "in my list", "in list", "on my list",
+    "list mein", "list me", "cart mein", "cart me",
+    "add kar do", "add karo", "add kr do", "add kro", "add",
+    "kar do", "karo", "kr do", "kro", "daal do", "daalo", "dal do", "dalo", "daal dena", "daalna",
+    "chahiye", "kharidna hai", "lena hai",
+    "लिस्ट में डालो", "लिस्ट में डाल दो", "लिस्ट में", "कार्ट में डालो", "कार्ट में",
+    "ऐड करो", "ऐड कर दो", "ऐड कर", "ऐड", "कर दो", "करो", "कीजिये",
+    "डाल दो", "डालो", "डाल देना", "डालना", "डाल", "लाओ", "ले आओ", "लाना",
+    "चाहिए", "खरीदना है", "लेना है"
+  ];
 
-  if (addMatch && addMatch[3]) {
-    const qty = addMatch[1] ? parseFloat(addMatch[1]) : 1;
-    const unit = addMatch[2] || "unit";
-    let name = addMatch[3]
-      .replace(/\b(add karo|daalo|list mein|to my list|in my list|please|kharidna hai|chahiye)\b/gi, "")
-      .trim();
-    // Safety guard: reject if extracted name still contains command-like words
-    const looksLikeCommand = /\b(karo|kar do|dena|hatao|remove|delete|nikalo|search|find|dikhao|dekho|dhoondo|dhundo)\b/i.test(name);
-    if (name.length > 0 && name.length < 60 && !["hello", "hi", "hey", "test"].includes(name) && !looksLikeCommand) {
-      return { action: "ADD_ITEM", items: [{ name, quantity: qty, unit }] };
+  let changed = true;
+  let iterations = 0;
+  while (changed && iterations < 5) {
+    changed = false;
+    iterations++;
+    for (const p of prefixes) {
+      if (cleaned.startsWith(p + " ")) {
+        cleaned = cleaned.slice(p.length).trim();
+        changed = true;
+        break;
+      }
     }
+    for (const s of suffixes) {
+      if (cleaned.endsWith(" " + s) || cleaned === s) {
+        cleaned = cleaned.slice(0, cleaned.length - s.length).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  if (cleaned.length > 0 && !["hello", "hi", "hey", "test", "item", "unit"].includes(cleaned)) {
+    const digitMatch = cleaned.match(/^(\d+|[०-९]+)\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit|litre|लीटर|किलो|पैकेट|बोतल|पीस)?\s*(?:of|ka|ki|ke|का|की|के)?\s*(.+)$/i);
+    let qty = 1;
+    let unit = "unit";
+    let itemName = cleaned;
+
+    if (digitMatch && digitMatch[3]) {
+      qty = parseFloat(digitMatch[1]) || 1;
+      unit = digitMatch[2] || "unit";
+      itemName = digitMatch[3].trim();
+    }
+
+    return { action: "ADD_ITEM", items: [{ name: itemName, quantity: qty, unit }] };
   }
 
   return { action: "UNKNOWN" };

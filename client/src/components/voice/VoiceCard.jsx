@@ -284,12 +284,17 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         };
       case "UNKNOWN":
       default: {
-        const fallbackName = result.item || result.query || "Item";
-        const lines = [isHi ? `${fallbackName} list mein add kar diya gaya hai` : `Added ${fallbackName} to your shopping list`];
-        const spokenText = isHi ? `${fallbackName} aapki list me add kar diya gaya hai.` : `Added ${fallbackName} to your shopping list.`;
+        const lines = [
+          isHi
+            ? "Command samajh nahi aaya. Kripya aise bolein: '1 litre doodh add karo' ya '2 packet bread'."
+            : (result.message || "I didn't catch that. Try saying 'Add 1 litre milk' or '2 packets of bread'.")
+        ];
+        const spokenText = isHi
+          ? "Maaf kijiye, samajh nahi aaya. Kripya dubara bolein."
+          : "Sorry, I didn't understand. Please try again.";
         return {
-          status: "success",
-          heading: isHi ? "Command safal raha" : "Command executed successfully",
+          status: "partial",
+          heading: isHi ? "Samajh nahi aaya" : "Didn't understand",
           lines,
           spokenText,
         };
