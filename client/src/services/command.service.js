@@ -28,6 +28,33 @@ const NOISE_WORDS = [
   "1", "2", "3", "4", "5", "l", "litre", "litr e", "kg", "g", "gm", "ml"
 ];
 
+const PHONETIC_CORRECTIONS = {
+  "amul butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
+  "butter": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
+  "makkan": { name: "Amul Butter 100g", category: "Dairy & Eggs", unit: "pack", price: 58 },
+  "doodh": { name: "Amul Taaza Fresh Milk 1L", category: "Dairy & Eggs", unit: "L", price: 68 },
+  "dudh": { name: "Amul Taaza Fresh Milk 1L", category: "Dairy & Eggs", unit: "L", price: 68 },
+  "milk": { name: "Amul Taaza Fresh Milk 1L", category: "Dairy & Eggs", unit: "L", price: 68 },
+  "pani": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
+  "paani": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
+  "water": { name: "Bisleri Mineral Water 1L", category: "Beverages", unit: "L", price: 20 },
+  "dahi": { name: "Mother Dairy Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 },
+  "curd": { name: "Mother Dairy Dahi 400g", category: "Dairy & Eggs", unit: "pack", price: 40 },
+  "paneer": { name: "Amul Malai Paneer 200g", category: "Dairy & Eggs", unit: "pack", price: 95 },
+  "bread": { name: "Britannia Brown Bread 400g", category: "Bakery & Snacks", unit: "pack", price: 45 },
+  "chai": { name: "Tata Tea Premium 500g", category: "Beverages", unit: "pack", price: 240 },
+  "tea": { name: "Tata Tea Premium 500g", category: "Beverages", unit: "pack", price: 240 },
+  "coffee": { name: "Nescafé Classic Coffee 50g", category: "Beverages", unit: "pack", price: 175 },
+  "sabun": { name: "Dettol Antiseptic Soap 125g", category: "Personal Care", unit: "pack", price: 48 },
+  "soap": { name: "Dettol Antiseptic Soap 125g", category: "Personal Care", unit: "pack", price: 48 },
+  "toothpaste": { name: "Colgate Strong Teeth 200g", category: "Personal Care", unit: "pack", price: 110 },
+  "oil": { name: "Fortune Mustard Oil 1L", category: "Cooking & Spices", unit: "L", price: 155 },
+  "tel": { name: "Fortune Mustard Oil 1L", category: "Cooking & Spices", unit: "L", price: 155 },
+  "rice": { name: "Basmati Rice 1kg", category: "Grains & Staples", unit: "kg", price: 65 },
+  "chawal": { name: "Basmati Rice 1kg", category: "Grains & Staples", unit: "kg", price: 65 },
+  "atta": { name: "Aashirvaad Whole Wheat Atta 1kg", category: "Grains & Staples", unit: "kg", price: 55 }
+};
+
 const SPECIFIC_BRANDS = [
   "amul", "britannia", "nestle", "nestlé", "bisleri", "colgate", "dettol",
   "tata", "nescafe", "nescafé", "modern", "fortune", "saffola", "pears",
@@ -175,6 +202,18 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     let unit = "unit";
     let itemName = seg.trim();
 
+    // Check direct phonetic dictionary first
+    const directLookup = PHONETIC_CORRECTIONS[itemName.toLowerCase()];
+    if (directLookup) {
+      return {
+        name: directLookup.name,
+        quantity: 1,
+        unit: directLookup.unit,
+        category: directLookup.category,
+        price: directLookup.price
+      };
+    }
+
     const digitMatch = seg.match(/^(\d+)\s*([a-zA-Z\u0900-\u097F]+)?\s*(?:of|ka|ki|ke)?\s*(.+)$/i);
     if (digitMatch && digitMatch[3] && digitMatch[3].trim().length > 0) {
       quantity = parseInt(digitMatch[1], 10);
@@ -221,7 +260,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   }
 
   // CHOICE DISAMBIGUATION
-  if (parsedItems.length === 1) {
+  if (parsedItems.length === 1 && !parsedItems[0].category) {
     const rawName = parsedItems[0].name.toLowerCase();
     const hasBrand = SPECIFIC_BRANDS.some(b => rawName.includes(b));
     if (!hasBrand) {
