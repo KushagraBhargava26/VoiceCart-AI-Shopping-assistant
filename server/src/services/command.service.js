@@ -36,18 +36,32 @@ async function executeAddItem(items) {
 async function executeRemoveItem(items) {
   const removed = [];
   const notFound = [];
+  const reduced = [];
 
   for (const item of items) {
     const existing = await findShoppingItemByName(item.name);
-    if (existing) {
+    if (!existing) {
+      notFound.push(item.name);
+      continue;
+    }
+
+    const requestedQty = item.quantity ? Number(item.quantity) : null;
+    const existingQty = Number(existing.quantity);
+
+    // If a specific quantity was requested AND it's less than the existing quantity,
+    // just reduce — don't delete the whole item
+    if (requestedQty && requestedQty < existingQty) {
+      const newQty = existingQty - requestedQty;
+      await updateShoppingItem(existing.id, { quantity: newQty });
+      reduced.push({ name: item.name, removed: requestedQty, remaining: newQty, unit: existing.unit });
+    } else {
+      // No quantity specified, or removing all — delete the item entirely
       await deleteShoppingItem(existing.id);
       removed.push(item.name);
-    } else {
-      notFound.push(item.name);
     }
   }
 
-  return { removed, notFound };
+  return { removed, notFound, reduced };
 }
 
 async function executeUpdateItem(items) {
@@ -96,11 +110,26 @@ export async function processVoiceCommand(transcript) {
     }
 
     case "REMOVE_ITEM": {
-      const { removed, notFound } = await executeRemoveItem(command.items);
-      const message =
-        removed.length > 0
-          ? `${removed.join(", ")} removed from your shopping list.`
-          : `Could not find ${notFound.join(", ")} on your list.`;
+      const { removed, notFound, reduced } = await executeRemoveItem(command.items);
+
+      let message;
+      if (reduced.length > 0 && removed.length === 0) {
+        // Only partial reduction happened
+        message = reduced
+          .map((r) => `Reduced ${r.name} by ${r.removed} ${r.unit}. ${r.remaining} ${r.unit} remaining.`)
+          .join(" ");
+      } else if (removed.length > 0 && reduced.length > 0) {
+        // Mix of full removes and partial reductions
+        message = [
+          ...removed.map((n) => `${n} removed.`),
+          ...reduced.map((r) => `${r.name} reduced to ${r.remaining} ${r.unit}.`),
+        ].join(" ");
+      } else if (removed.length > 0) {
+        message = `${removed.join(", ")} removed from your shopping list.`;
+      } else {
+        message = `Could not find ${notFound.join(", ")} on your list.`;
+      }
+
       return { action: "REMOVE_ITEM", items: command.items, message };
     }
 
