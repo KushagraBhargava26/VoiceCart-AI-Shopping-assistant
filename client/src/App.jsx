@@ -6,7 +6,7 @@ import SuggestionsCard from "./components/suggestions/SuggestionsCard.jsx";
 import SearchCard from "./components/search/SearchCard.jsx";
 import HistoryCard from "./components/history/HistoryCard.jsx";
 import CategoriesCard from "./components/categories/CategoriesCard.jsx";
-import AuthModal from "./components/auth/AuthModal.jsx";
+import LoginPage from "./components/auth/LoginPage.jsx";
 import { getStoredUser, logoutUser } from "./services/auth.service.js";
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchPresetQuery, setSearchPresetQuery] = useState(null);
   const [user, setUser] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLoginPage, setShowLoginPage] = useState(false);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -27,6 +27,13 @@ function App() {
   function handleLogout() {
     logoutUser();
     setUser(null);
+    setShowLoginPage(true);
+  }
+
+  function handleAuthSuccess(userData) {
+    setUser(userData);
+    setShowLoginPage(false);
+    setActiveView("home");
   }
 
   function triggerRefresh() {
@@ -43,19 +50,26 @@ function App() {
     setActiveView("search");
   }
 
+  if (showLoginPage) {
+    return (
+      <LoginPage
+        onLoginSuccess={handleAuthSuccess}
+        onGuestLogin={() => {
+          setShowLoginPage(false);
+          setActiveView("home");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-bg text-text-main">
       <Sidebar
         activeView={activeView}
         onNavigate={setActiveView}
         user={user}
-        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenAuth={() => setShowLoginPage(true)}
         onLogout={handleLogout}
-      />
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onAuthSuccess={(userData) => setUser(userData)}
       />
       <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
         {activeView === "home" && (
