@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useVoiceRecognition } from "../../hooks/useVoiceRecognition.js";
 import { sendVoiceCommand } from "../../services/command.service.js";
-import { addItem } from "../../services/shoppingList.service.js";
+import { addItem, deleteItem, fetchShoppingList } from "../../services/shoppingList.service.js";
 import { getItemIcon } from "../../utils/itemIcons.js";
 import { speakResponse } from "../../utils/speech.js";
 
@@ -83,25 +83,31 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
       try {
         const result = await sendVoiceCommand(transcript, language);
 
-        // Navigation detection
-        const navTarget = detectNavigation(transcript, result);
-        if (navTarget) {
-          onNavigate?.(navTarget);
-          const label = navTarget === "shopping-list" ? "Shopping List" : navTarget.charAt(0).toUpperCase() + navTarget.slice(1);
-          const msg = isHindi ? `${label} khol diya gaya hai.` : `Opened ${label}.`;
-          setFeedback({ status: "success", heading: isHindi ? "Navigation safal raha" : "Navigating", lines: [msg] });
-          if (audioFeedback) speakResponse(msg, language);
-          return;
-        }
+        // Perform shopping list mutation for voice commands
+        if (result.action === "ADD_ITEM") {
+          const itemsToAdd = Array.isArray(result.items) && result.items.length > 0
+            ? result.items
+            : [{ name: result.item || transcript.replace(/add|daal|karo|bhejo|i need|buy/gi, '').trim() || "Item", quantity: result.quantity || 1, unit: result.unit || "unit" }];
 
-        // Product picker
-        if (result.action === "PRODUCT_SELECTION_REQUIRED") {
-          setProductPicker({ pendingItems: result.pendingItems, results: result.results });
-          const spokenMsg = isHindi
-            ? "Aapke liye kuch options hain. Kaunsa product lena chahenge?"
-            : "I found some products. Which one would you like to add?";
-          if (audioFeedback) speakResponse(spokenMsg, language);
-          return;
+          for (const item of itemsToAdd) {
+            await addItem({
+              name: item.name || result.item || "Item",
+              quantity: item.quantity || 1,
+              unit: item.unit || "unit",
+              brand: item.brand || "",
+              category: item.category || ""
+            });
+          }
+        } else if (result.action === "REMOVE_ITEM") {
+          const targetName = (result.item || transcript || "").toLowerCase().replace(/remove|hata|nikal|do|from my list/gi, "").trim();
+          if (targetName) {
+            const currentList = await fetchShoppingList();
+            const items = currentList?.items || [];
+            const match = items.find(i => (i.name || "").toLowerCase().includes(targetName) || targetName.includes((i.name || "").toLowerCase()));
+            if (match) {
+              await deleteItem(match.id);
+            }
+          }
         }
 
         const { status, heading, lines, spokenText } = buildFeedback(result, language);
