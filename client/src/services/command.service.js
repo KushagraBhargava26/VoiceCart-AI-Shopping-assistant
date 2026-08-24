@@ -78,8 +78,6 @@ const GENERIC_CHOICES = {
 
 function stripFillers(text) {
   let str = (text || "").trim();
-
-  // 1. Strip leading action prefixes safely
   const prefixes = [
     "i want to add", "i need to add", "please add", "can you add",
     "add to cart", "add to list", "add me", "add", "put", "buy", "need", "want", "get",
@@ -95,7 +93,6 @@ function stripFillers(text) {
     }
   }
 
-  // 2. Strip trailing destination fillers safely ONLY if preceded by a space
   const suffixes = [
     "to my shopping list", "to my cart", "to the cart", "to the list", "to cart", "to list",
     "in my cart", "in cart", "in my list", "in list", "on my list",
@@ -118,13 +115,13 @@ function stripFillers(text) {
 export function parseClientVoiceCommand(rawTranscript, language) {
   const transcript = (rawTranscript || "").trim();
   const lower = transcript.toLowerCase();
+  const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(aur|daalo|karo|chahiye|do|daal)\b/i.test(lower);
 
-  // 1. Check for REMOVE action
+  // 1. REMOVE action
   if (/\b(remove|delete|hata|nikal|drop|mita|hatao)\b/i.test(lower)) {
     let cleanName = stripFillers(transcript);
     cleanName = cleanName.replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b/gi, "").trim() || "Item";
 
-    const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(hata|nikal|karo)\b/i.test(lower);
     return {
       action: "REMOVE_ITEM",
       item: cleanName,
@@ -132,12 +129,11 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     };
   }
 
-  // 2. Check for SEARCH action
+  // 2. SEARCH action
   if (/\b(search|find|dhundho|dikhao|look for|kholo)\b/i.test(lower)) {
     let query = stripFillers(transcript);
     query = query.replace(/\b(search|find|dhundho|dikhao|look for|kholo|karo|please|under \d+|rupees|rupaye)\b/gi, "").trim() || transcript;
 
-    const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript);
     return {
       action: "NAVIGATE_SEARCH",
       query,
@@ -146,11 +142,11 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   }
 
   // 3. Multi-item & Hindi/English NLP extraction for ADD_ITEM
-  const cleanBody = stripFillers(transcript);
+  const cleanBody = stripFillers(transcript) || transcript;
 
-  const segments = (cleanBody || transcript).split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
+  const segments = cleanBody.split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
 
-  const parsedItems = (segments.length ? segments : [cleanBody || transcript]).map((seg) => {
+  let parsedItems = (segments.length ? segments : [cleanBody]).map((seg) => {
     let quantity = 1;
     let unit = "unit";
     let itemName = seg.trim();
@@ -187,9 +183,16 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       quantity: quantity || 1,
       unit: unit || "unit"
     };
-  }).filter(item => item.name && item.name.trim().length > 0 && !["1", "2", "3", "l", "litre", "kg", "unit", "packet"].includes(item.name.trim().toLowerCase()));
+  }).filter(item => item.name && item.name.trim().length > 0);
 
-  const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(aur|daalo|karo|chahiye)\b/i.test(lower);
+  // Fallback if parsing returned empty
+  if (parsedItems.length === 0) {
+    parsedItems = [{
+      name: cleanBody || "Item",
+      quantity: 1,
+      unit: "unit"
+    }];
+  }
 
   // CHOICE DISAMBIGUATION
   if (parsedItems.length === 1) {
