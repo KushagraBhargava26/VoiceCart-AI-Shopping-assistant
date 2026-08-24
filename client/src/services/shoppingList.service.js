@@ -1,7 +1,7 @@
 import { get, post, patch, del } from './api.js';
-import { archiveItemToHistory } from './history.service.js';
 
 const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
+const LOCAL_HISTORY_KEY = "voicecart_local_history_store";
 
 const PRICE_LOOKUP = [
   { keywords: ["water", "bisleri", "pani", "paani"], price: 20 },
@@ -44,11 +44,28 @@ export function resolveItemPrice(itemName, providedPrice) {
     }
   }
 
-  // Realistic default MRP for unmatched items
   return 25;
 }
 
-function getLocalItems() {
+function archiveDeletedItemLocally(item) {
+  try {
+    const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+    const history = raw ? JSON.parse(raw) : [];
+    const entry = {
+      id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      name: item.name || item.itemName || "Item",
+      category: item.category || "General",
+      quantity: item.quantity || 1,
+      unit: item.unit || "unit",
+      price: item.price || item.estimatedPrice || 45,
+      purchasedAt: new Date().toISOString()
+    };
+    const list = Array.isArray(history) ? history : [];
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify([entry, ...list]));
+  } catch (e) {}
+}
+
+export function getLocalItems() {
   try {
     const data = localStorage.getItem(LOCAL_ITEMS_KEY);
     return data ? JSON.parse(data) : [];
@@ -57,7 +74,7 @@ function getLocalItems() {
   }
 }
 
-function saveLocalItems(items) {
+export function saveLocalItems(items) {
   try {
     localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(items));
   } catch (e) {}
@@ -66,16 +83,20 @@ function saveLocalItems(items) {
 export async function fetchShoppingList() {
   try {
     const res = await get('/shopping-list');
-    if (res && res.items && Array.isArray(res.items)) {
-      const local = getLocalItems();
-      const combinedMap = new Map();
-      [...res.items, ...local].forEach((item) => {
-        const itemPrice = resolveItemPrice(item.name, item.price ?? item.estimatedPrice);
-        combinedMap.set(item.id || item.name, { ...item, price: itemPrice, estimatedPrice: itemPrice });
+    if (res && (res.items || Array.isArray(res))) {
+      const items = res.items || res;
+      saveLocalItems(items);
+      const resolvedItems = items.map((item) => {
+        const existingPrice = (item.price === 60 || item.price === 45) ? undefined : (item.price ?? item.estimatedPrice);
+        const itemPrice = resolveItemPrice(item.name, existingPrice);
+        return { ...item, price: itemPrice, estimatedPrice: itemPrice };
       });
-      const combined = Array.from(combinedMap.values());
-      const cartTotal = combined.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
-      return { items: combined, cartTotal, currency: "INR" };
+      const cartTotal = resolvedItems.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
+      return {
+        items: resolvedItems,
+        cartTotal,
+        currency: "INR"
+      };
     }
     throw new Error("No server items");
   } catch (err) {
@@ -148,7 +169,7 @@ export async function deleteItem(id) {
   const local = getLocalItems();
   const deletedItem = local.find((i) => i.id === id);
   if (deletedItem) {
-    archiveItemToHistory(deletedItem);
+    archiveDeletedItemLocally(deletedItem);
   }
   const filtered = local.filter((i) => i.id !== id);
   saveLocalItems(filtered);
