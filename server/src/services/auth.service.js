@@ -167,6 +167,8 @@ export async function googleAuthUser({ idToken, name, email }) {
 
 const passwordResetOTPs = new Map();
 
+import { sendPasswordResetEmail } from "./email.service.js";
+
 /**
  * Request password reset verification code (OTP).
  */
@@ -198,10 +200,17 @@ export async function requestForgotPassword(email) {
   passwordResetOTPs.set(normalizedEmail, { otp, expiresAt });
   console.log(`[AUTH] Password Reset OTP for ${normalizedEmail}: ${otp}`);
 
+  // Dispatch real email notification via Nodemailer
+  const emailRes = await sendPasswordResetEmail({
+    toEmail: normalizedEmail,
+    otp,
+    name: user.name,
+  });
+
   return {
     email: normalizedEmail,
     message: "Verification code sent to your email.",
-    otp,
+    previewUrl: emailRes?.previewUrl,
   };
 }
 
