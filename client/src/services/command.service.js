@@ -16,30 +16,22 @@ const NUMBER_WORDS = {
 const SPECIFIC_BRANDS = [
   "amul", "britannia", "nestle", "nestlé", "bisleri", "colgate", "dettol",
   "tata", "nescafe", "nescafé", "modern", "fortune", "saffola", "pears",
-  "taj mahal", "mother dairy", "haldiram", "lays", "lay's", "kurkure"
+  "taj mahal", "mother dairy", "haldiram", "lays", "lay's", "kurkure", "almond"
+];
+
+const MILK_OPTIONS = [
+  { id: "p1", name: "Amul Taaza Fresh Milk 1L", brand: "Amul", category: "Dairy & Eggs", price: 68, size: "1L" },
+  { id: "p80_alm", name: "Almond Milk 1L", brand: "Raw Pressery", category: "Dairy & Eggs", price: 180, size: "1L" },
+  { id: "p4", name: "Mother Dairy Classic Dahi 400g", brand: "Mother Dairy", category: "Dairy & Eggs", price: 40, size: "400g" },
+  { id: "p8", name: "Nestlé A+ Fresh Cream 200ml", brand: "Nestlé", category: "Dairy & Eggs", price: 65, size: "200ml" },
+  { id: "p9", name: "Amul Masti Spiced Buttermilk 200ml", brand: "Amul", category: "Dairy & Eggs", price: 15, size: "200ml" }
 ];
 
 const GENERIC_CHOICES = {
-  milk: [
-    { id: "p1", name: "Amul Taaza Fresh Milk 1L", brand: "Amul", category: "Dairy & Eggs", price: 68, size: "1L" },
-    { id: "p8", name: "Nestlé A+ Fresh Cream 200ml", brand: "Nestlé", category: "Dairy & Eggs", price: 65, size: "200ml" },
-    { id: "p9", name: "Amul Masti Spiced Buttermilk 200ml", brand: "Amul", category: "Dairy & Eggs", price: 15, size: "200ml" }
-  ],
-  doodh: [
-    { id: "p1", name: "Amul Taaza Fresh Milk 1L", brand: "Amul", category: "Dairy & Eggs", price: 68, size: "1L" },
-    { id: "p8", name: "Nestlé A+ Fresh Cream 200ml", brand: "Nestlé", category: "Dairy & Eggs", price: 65, size: "200ml" },
-    { id: "p9", name: "Amul Masti Spiced Buttermilk 200ml", brand: "Amul", category: "Dairy & Eggs", price: 15, size: "200ml" }
-  ],
-  dudh: [
-    { id: "p1", name: "Amul Taaza Fresh Milk 1L", brand: "Amul", category: "Dairy & Eggs", price: 68, size: "1L" },
-    { id: "p8", name: "Nestlé A+ Fresh Cream 200ml", brand: "Nestlé", category: "Dairy & Eggs", price: 65, size: "200ml" },
-    { id: "p9", name: "Amul Masti Spiced Buttermilk 200ml", brand: "Amul", category: "Dairy & Eggs", price: 15, size: "200ml" }
-  ],
-  दूध: [
-    { id: "p1", name: "Amul Taaza Fresh Milk 1L", brand: "Amul", category: "Dairy & Eggs", price: 68, size: "1L" },
-    { id: "p8", name: "Nestlé A+ Fresh Cream 200ml", brand: "Nestlé", category: "Dairy & Eggs", price: 65, size: "200ml" },
-    { id: "p9", name: "Amul Masti Spiced Buttermilk 200ml", brand: "Amul", category: "Dairy & Eggs", price: 15, size: "200ml" }
-  ],
+  milk: MILK_OPTIONS,
+  doodh: MILK_OPTIONS,
+  dudh: MILK_OPTIONS,
+  दूध: MILK_OPTIONS,
   bread: [
     { id: "p13", name: "Britannia Brown Bread 400g", brand: "Britannia", category: "Bakery & Snacks", price: 45, size: "400g" },
     { id: "p22", name: "Modern Whole Wheat Bread 400g", brand: "Modern", category: "Bakery & Snacks", price: 48, size: "400g" }
@@ -211,14 +203,23 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 }
 
 export async function sendVoiceCommand(transcript, language) {
+  // Check client-side choice selection requirement first for instant interactive prompt
+  const clientParsed = parseClientVoiceCommand(transcript, language);
+  if (clientParsed && clientParsed.action === "PRODUCT_SELECTION_REQUIRED") {
+    return clientParsed;
+  }
+
   try {
     const res = await post('/commands', { transcript, language });
+    if (res && res.action && res.action === "PRODUCT_SELECTION_REQUIRED") {
+      return res;
+    }
     if (res && res.action && (res.items || res.item || res.results)) {
       return res;
     }
-    throw new Error("No backend resolution");
+    return clientParsed;
   } catch (err) {
     console.warn("Voice command API unreachable, using resilient client NLP parser:", err.message);
-    return parseClientVoiceCommand(transcript, language);
+    return clientParsed;
   }
 }
