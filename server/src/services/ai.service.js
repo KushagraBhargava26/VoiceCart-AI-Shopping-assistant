@@ -60,22 +60,26 @@ function fallbackInterpret(transcript) {
   const text = (transcript || "").trim().toLowerCase();
 
   // Suggestions
-  if (/what should i buy|suggestions|kya khareedu|recommend/i.test(text)) {
+  if (/what should i buy|suggestions|kya khareedu|recommend|sujhav/i.test(text)) {
     return { action: "GET_SUGGESTIONS" };
   }
 
-  // Remove item
-  const removeMatch = text.match(/(?:remove|delete|hatao|nikalo|hata do)\s+(.+?)(?:\s+(?:from|se|list))*$/i);
-  if (removeMatch && removeMatch[1]) {
-    const rawName = removeMatch[1].replace(/my list|the list|list se/g, "").trim();
-    return {
-      action: "REMOVE_ITEM",
-      items: [{ name: rawName }],
-    };
+  // Remove item — check BEFORE add so Hindi "X ko remove kar do" never becomes ADD_ITEM
+  // Covers: "remove X", "X ko remove kar do", "hata do X", "X hata do", "X nikalo", "delete X"
+  const removeKeywords = /\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/i;
+  if (removeKeywords.test(text)) {
+    const cleaned = text
+      .replace(/\b(remove kar do|hata do|hata dena|delete karo|nikalo|nikal do|remove|delete|hatao|hata|nikal)\b/gi, "")
+      .replace(/\b(ko|se|list|meri|my|the|please|karo|kar do|dena|se hata|list se)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (cleaned.length > 0) {
+      return { action: "REMOVE_ITEM", items: [{ name: cleaned }] };
+    }
   }
 
   // Search product
-  const searchMatch = text.match(/(?:search|find|dhoondo|khojo|check)\s+(.+)/i);
+  const searchMatch = text.match(/(?:search|find|dhoondo|khojo|check|dhundo|search karo)\s+(.+)/i);
   if (searchMatch && searchMatch[1]) {
     return {
       action: "SEARCH_PRODUCT",
@@ -83,18 +87,19 @@ function fallbackInterpret(transcript) {
     };
   }
 
-  // Add item (e.g. "Add 2 litres of milk", "doodh add karo", "2 kg rice")
-  const addMatch = text.match(/(?:add|buy|get|lana|daalo|chahiye)?\s*(\d+(?:\.\d+)?)*\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit)?\s*(?:of\s+)?(.+?)(?:\s+(?:add karo|daalo|to my list|in my list|chahiye))*$/i);
+  // Add item — only reach here if no remove keywords matched
+  const addMatch = text.match(/(?:add|buy|get|lana|daalo|chahiye|add karo|list mein daalo)?\s*(\d+(?:\.\d+)?)*\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit)?\s*(?:of\s+)?(.+?)(?:\s+(?:add karo|daalo|to my list|in my list|list mein|chahiye|kharidna hai))*$/i);
 
   if (addMatch && addMatch[3]) {
     const qty = addMatch[1] ? parseFloat(addMatch[1]) : 1;
     const unit = addMatch[2] || "unit";
-    let name = addMatch[3].replace(/add karo|daalo|to my list|in my list|please/g, "").trim();
-    if (name.length > 0 && !["hello", "hi", "hey", "test"].includes(name)) {
-      return {
-        action: "ADD_ITEM",
-        items: [{ name, quantity: qty, unit }],
-      };
+    let name = addMatch[3]
+      .replace(/\b(add karo|daalo|list mein|to my list|in my list|please|kharidna hai|chahiye)\b/gi, "")
+      .trim();
+    // Safety guard: reject if extracted name still contains command-like words
+    const looksLikeCommand = /\b(karo|kar do|dena|hatao|remove|delete|nikalo|search|find)\b/i.test(name);
+    if (name.length > 0 && name.length < 60 && !["hello", "hi", "hey", "test"].includes(name) && !looksLikeCommand) {
+      return { action: "ADD_ITEM", items: [{ name, quantity: qty, unit }] };
     }
   }
 
