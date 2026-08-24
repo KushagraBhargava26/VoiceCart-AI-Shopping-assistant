@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import {
   loginUser,
   signupUser,
@@ -8,9 +7,7 @@ import {
   resetPassword,
 } from "../../services/auth.service.js";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "718294628194-voicecart.apps.googleusercontent.com";
-
-function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
+export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +17,7 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
 
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotOtp, setForgotOtp] = useState("");
   const [forgotNewPassword, setForgotNewPassword] = useState("");
@@ -53,26 +50,7 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
     }
   }
 
-  async function handleGoogleSuccess(credentialResponse) {
-    if (!credentialResponse?.credential) {
-      setError("Google authentication token was missing.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const user = await googleAuthUser({ idToken: credentialResponse.credential });
-      onLoginSuccess?.(user);
-    } catch (err) {
-      setError(err.message || "Google authentication failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleManualGoogleSSO() {
+  async function handleGoogleSSO() {
     setLoading(true);
     setError(null);
     try {
@@ -88,7 +66,6 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
     }
   }
 
-  // Forgot Password Handlers
   async function handleRequestOTP(e) {
     e.preventDefault();
     if (!forgotEmail.trim()) {
@@ -101,8 +78,8 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
     setForgotSuccess(null);
 
     try {
-      const res = await requestForgotPassword(forgotEmail);
-      setForgotSuccess(`Verification code sent to ${forgotEmail}! Please check your email inbox for the 6-digit OTP.`);
+      await requestForgotPassword(forgotEmail);
+      setForgotSuccess(`Verification code sent to ${forgotEmail}! Check your inbox for the 6-digit OTP.`);
       setForgotOtp("");
       setForgotStep(2);
     } catch (err) {
@@ -150,13 +127,12 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
           </div>
           <span className="text-base font-bold tracking-tight text-text-main">VoiceCart</span>
         </div>
-
         <span className="text-xs text-text-faint hidden sm:inline">AI Voice Shopping Assistant v2.0</span>
       </header>
 
       {/* 2-COLUMN SPLIT CONTAINER */}
       <main className="max-w-7xl w-full mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10 py-4">
-        {/* LEFT SIDE: BRANDING & VOICE VISUALS */}
+        {/* LEFT SIDE: BRANDING */}
         <div className="lg:col-span-7 space-y-6 pr-0 lg:pr-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal/10 border border-teal-dim/40 text-xs font-semibold text-teal">
             <span>✨</span> Built for Indian Grocery & Daily Shopping
@@ -173,7 +149,6 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
             Speak in Hindi or English to add items, estimate cart bill live, and reorder from shopping history with zero effort.
           </p>
 
-          {/* Voice Command Demonstration Banner */}
           <div className="p-4 rounded-2xl bg-panel border border-border-soft backdrop-blur-md flex items-center gap-4 max-w-lg">
             <div className="w-14 h-14 rounded-2xl bg-panel-2 border border-teal-dim/40 flex items-center justify-center text-2xl flex-shrink-0 relative">
               🎤
@@ -186,39 +161,11 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
               <p className="text-[11px] text-text-dim">Instant AI Parsing • Hindi & English Commands</p>
             </div>
           </div>
-
-          {/* 4 Feature Cards Grid */}
-          <div className="grid grid-cols-2 gap-3 max-w-lg pt-1">
-            <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
-              <span className="text-base block mb-1">🗣️</span>
-              <h4 className="text-xs font-semibold text-text-main">Bilingual Speech</h4>
-              <p className="text-[10px] text-text-dim mt-0.5">Hindi & Hinglish voice NLP</p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
-              <span className="text-base block mb-1">💰</span>
-              <h4 className="text-xs font-semibold text-text-main">Budget Estimator</h4>
-              <p className="text-[10px] text-text-dim mt-0.5">Live ₹ total & price tags</p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
-              <span className="text-base block mb-1">🛍️</span>
-              <h4 className="text-xs font-semibold text-text-main">Smart Product Picker</h4>
-              <p className="text-[10px] text-text-dim mt-0.5">Catalog options selection</p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
-              <span className="text-base block mb-1">🔄</span>
-              <h4 className="text-xs font-semibold text-text-main">Instant History Reorder</h4>
-              <p className="text-[10px] text-text-dim mt-0.5">1-click item restoration</p>
-            </div>
-          </div>
         </div>
 
-        {/* RIGHT SIDE: DEDICATED LOGIN CARD */}
+        {/* RIGHT SIDE: LOGIN CARD */}
         <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
           <div className="bg-panel border border-border-soft rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-            {/* Card Header */}
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold text-text-main tracking-tight">
                 {isSignUp ? "Create Your Account" : "Sign in to VoiceCart"}
@@ -230,14 +177,12 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
               </p>
             </div>
 
-            {/* Error Alert */}
             {error && (
               <div className="p-3 rounded-xl border border-red-400/30 bg-red-400/5 text-xs text-red-400 mb-4">
                 ✕ {error}
               </div>
             )}
 
-            {/* Form (TOP) */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                 <div>
@@ -301,7 +246,6 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
               </button>
             </form>
 
-            {/* Toggle Sign In / Create Account */}
             <div className="text-center mt-3">
               <button
                 type="button"
@@ -311,7 +255,6 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
               </button>
             </div>
 
-            {/* Divider */}
             <div className="relative flex items-center justify-center my-5">
               <div className="w-full border-t border-border-soft"></div>
               <span className="absolute bg-panel px-3 text-[10px] font-bold text-text-faint uppercase tracking-wider">
@@ -319,37 +262,21 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
               </span>
             </div>
 
-            {/* Bottom Options on Same Line (Google SSO + Continue as Guest) */}
             <div className="grid grid-cols-2 gap-3 items-center">
-              {/* Google Sign In Button */}
-              {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-                <div className="relative flex items-center justify-center">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError("Google OAuth error: Check Authorized Origins in Google Cloud Console.")}
-                    shape="pill"
-                    size="medium"
-                    theme="filled_black"
-                    text="signin_with"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleManualGoogleSSO}
-                  disabled={loading}
-                  className="py-2 px-3 rounded-full bg-panel-2 border border-border-soft hover:border-teal-dim flex items-center justify-center gap-2 text-xs font-medium text-text-main transition-colors hover:bg-panel shadow-sm h-[38px]">
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                  </svg>
-                  <span className="truncate">Google Sign In</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleGoogleSSO}
+                disabled={loading}
+                className="py-2 px-3 rounded-full bg-panel-2 border border-border-soft hover:border-teal-dim flex items-center justify-center gap-2 text-xs font-medium text-text-main transition-colors hover:bg-panel shadow-sm h-[38px]">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span className="truncate">Google Sign In</span>
+              </button>
 
-              {/* Guest Access (Bottom Right - Same Line) */}
               <button
                 type="button"
                 onClick={onGuestLogin}
@@ -466,22 +393,9 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
         </div>
       )}
 
-      {/* Footer */}
       <footer className="max-w-7xl w-full mx-auto text-center text-[11px] text-text-faint py-2 z-10">
         © 2026 VoiceCart AI Inc. All rights reserved.
       </footer>
     </div>
   );
-}
-
-export default function LoginPage(props) {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  if (clientId && clientId.length > 20) {
-    return (
-      <GoogleOAuthProvider clientId={clientId}>
-        <LoginPageContent {...props} />
-      </GoogleOAuthProvider>
-    );
-  }
-  return <LoginPageContent {...props} />;
 }
