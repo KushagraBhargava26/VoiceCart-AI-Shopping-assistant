@@ -39,7 +39,7 @@ export default function Sidebar({ activeView, onNavigate, user, onOpenAuth, onLo
       <aside
         className={`
           bg-panel border-r border-border-soft p-4 flex flex-col justify-between
-          w-64 md:w-56 min-h-screen
+          w-64 md:w-56 h-screen flex-shrink-0
           fixed md:static top-0 left-0 z-50
           transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0

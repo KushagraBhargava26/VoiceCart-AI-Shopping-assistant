@@ -14,7 +14,7 @@ const GUEST_PASSED_KEY = "voicecart_guest_session";
 
 function MainLayout({ activeView, onNavigate, user, onOpenAuth, onLogout, children }) {
   return (
-    <div className="flex min-h-screen bg-bg text-text-main">
+    <div className="flex h-screen w-screen overflow-hidden bg-bg text-text-main">
       <Sidebar
         activeView={activeView}
         onNavigate={onNavigate}
@@ -22,7 +22,7 @@ function MainLayout({ activeView, onNavigate, user, onOpenAuth, onLogout, childr
         onOpenAuth={onOpenAuth}
         onLogout={onLogout}
       />
-      <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
+      <main className="flex-1 h-full overflow-y-auto pt-16 md:pt-6 px-4 md:px-7 pb-6">
         {children}
       </main>
     </div>
