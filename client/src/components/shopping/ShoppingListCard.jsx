@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import ShoppingItemRow from "./ShoppingItemRow.jsx";
-import { fetchShoppingList, addItem, updateItem, deleteItem } from "../../services/shoppingList.service.js";
+import { fetchShoppingList, addItem, updateItem, deleteItem, resolveItemPrice } from "../../services/shoppingList.service.js";
 
 function SkeletonRow() {
   return (
@@ -90,7 +90,10 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
         quantity: Number(newItem.quantity) || 1,
         unit: newItem.unit.trim() || "unit"
       });
-      setItems((prev) => [...prev, created]);
+      // BUG-03 FIX: addItem returns null for noise/invalid names
+      if (created) {
+        setItems((prev) => [...prev, created]);
+      }
       setNewItem({ name: "", quantity: 1, unit: "" });
       setShowAddForm(false);
       onChange?.();
@@ -105,7 +108,7 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
     let text = `🛒 *My VoiceCart Shopping List* (${items.length} item${items.length > 1 ? 's' : ''})\n`;
     text += `----------------------------------\n`;
     items.forEach((item) => {
-      const priceVal = Number(item.price ?? item.estimatedPrice ?? 45) * Number(item.quantity || 1);
+      const priceVal = resolveItemPrice(item.name, item.price ?? item.estimatedPrice) * Number(item.quantity || 1);
       text += `• ${item.name} - ${item.quantity} ${item.unit || 'unit'} (₹${priceVal})\n`;
     });
     text += `----------------------------------\n`;

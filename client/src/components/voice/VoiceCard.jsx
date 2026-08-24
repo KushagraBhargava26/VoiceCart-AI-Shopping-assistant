@@ -115,6 +115,14 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
               await deleteItem(match.id);
             }
           }
+        } else if (result.action === "PRODUCT_SELECTION_REQUIRED") {
+          // BUG-02 FIX: Show product picker modal
+          setProductPicker({ pendingItems: result.pendingItems, results: result.results });
+          const spokenText = result.spokenResponse || (isHindi ? "Kaunsa product add karna chahenge?" : "Which product would you like to add?");
+          if (audioFeedback) speakResponse(spokenText, language);
+          setProcessing(false);
+          resetTranscript();
+          return; // Don't show feedback box — picker handles it
         }
 
         const { status, heading, lines, spokenText } = buildFeedback(result, language);
@@ -122,7 +130,10 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
         if (audioFeedback && spokenText) speakResponse(spokenText, language);
         if (status === "success") onCommandProcessed?.();
-        if (result.action === "SEARCH_PRODUCT") onSearchCommand?.(result.query);
+        // BUG-04 FIX: handle both NAVIGATE_SEARCH and SEARCH_PRODUCT
+        if (result.action === "NAVIGATE_SEARCH" || result.action === "SEARCH_PRODUCT") {
+          onSearchCommand?.(result.query);
+        }
 
       } catch (err) {
         const errMsg = isHindi ? "Maaf kijiye, command execute nahi ho paya." : err.message;
@@ -202,13 +213,13 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         };
       }
       case "REMOVE_ITEM": {
-        const lines = [isHi ? "Item shopping list se hata diya gaya hai." : result.message];
-        const spokenText = isHi ? "Item aapki shopping list se hata diya gaya hai." : result.message;
+        const removeMsg = result.spokenResponse || (isHi ? "Item shopping list se hata diya gaya hai." : `Removed ${result.item || "item"} from your shopping list.`);
+        const lines = [isHi ? "Item shopping list se hata diya gaya hai." : `✓ Removed ${result.item || "item"} from your list`];
         return {
           status: "success",
           heading: isHi ? "Command safal raha" : "Command executed successfully",
           lines,
-          spokenText,
+          spokenText: removeMsg,
         };
       }
       case "UPDATE_ITEM": {
@@ -366,7 +377,7 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
             <p className="text-[15px] font-medium text-teal animate-pulse">{isHindi ? "Main sun raha hoon..." : "I'm listening..."}</p>
             {(interimTranscript || transcript) && (
               <p className="text-xs font-semibold text-text-main bg-panel-2 px-3 py-1.5 rounded-lg border border-teal/30 inline-block max-w-full truncate">
-                "{interimTranscript || transcript}"
+                {interimTranscript || transcript}
               </p>
             )}
           </div>

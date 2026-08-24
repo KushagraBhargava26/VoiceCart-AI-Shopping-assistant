@@ -56,19 +56,23 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
       setLoading(true);
       setError(null);
       try {
-        // Fetch user profile from Google using access token
+        // Fetch verified user profile from Google using access token
         const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         });
+        if (!profileRes.ok) throw new Error("Failed to fetch Google profile");
         const profile = await profileRes.json();
+
+        if (!profile.email) throw new Error("Google did not return an email address");
+
+        // BUG-07 FIX: Send verified name/email directly — don't send access_token as idToken
         const user = await googleAuthUser({
-          idToken: tokenResponse.access_token,
           name: profile.name || profile.given_name || "Google User",
           email: profile.email,
         });
         onLoginSuccess?.(user);
       } catch (err) {
-        setError("Google sign-in failed. Please try again.");
+        setError(err.message || "Google sign-in failed. Please try again.");
       } finally {
         setLoading(false);
       }

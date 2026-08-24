@@ -53,7 +53,7 @@ function AppContent() {
         navigate("/login", { replace: true });
       }
     }
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   function handleLogout() {
     logoutUser();

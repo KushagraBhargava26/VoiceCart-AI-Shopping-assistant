@@ -110,9 +110,15 @@ export async function fetchShoppingList() {
         return { ...item, price: itemPrice, estimatedPrice: itemPrice };
       });
       const cartTotal = resolvedItems.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
+      // partialTotal: true if any item had no matching price in catalog (defaulted to 45)
+      const partialTotal = resolvedItems.some(item => {
+        const clean = (item.name || "").toLowerCase().trim();
+        return !PRICE_LOOKUP.some(e => e.keywords.some(kw => clean.includes(kw)));
+      });
       return {
         items: resolvedItems,
         cartTotal,
+        partialTotal,
         currency: "INR"
       };
     }
@@ -124,9 +130,14 @@ export async function fetchShoppingList() {
       return { ...item, price: itemPrice, estimatedPrice: itemPrice };
     });
     const cartTotal = resolvedLocal.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
+    const partialTotal = resolvedLocal.some(item => {
+      const clean = (item.name || "").toLowerCase().trim();
+      return !PRICE_LOOKUP.some(e => e.keywords.some(kw => clean.includes(kw)));
+    });
     return {
       items: resolvedLocal,
       cartTotal,
+      partialTotal,
       currency: "INR"
     };
   }
