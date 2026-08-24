@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import {
   loginUser,
   signupUser,
@@ -50,21 +51,32 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
     }
   }
 
-  async function handleGoogleSSO() {
-    setLoading(true);
-    setError(null);
-    try {
-      const user = await googleAuthUser({
-        name: "Google User",
-        email: `google_${Date.now()}@voicecart.ai`,
-      });
-      onLoginSuccess?.(user);
-    } catch (err) {
-      setError("Google sign-in failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch user profile from Google using access token
+        const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        });
+        const profile = await profileRes.json();
+        const user = await googleAuthUser({
+          idToken: tokenResponse.access_token,
+          name: profile.name || profile.given_name || "Google User",
+          email: profile.email,
+        });
+        onLoginSuccess?.(user);
+      } catch (err) {
+        setError("Google sign-in failed. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setError("Google sign-in was cancelled or failed. Please try again.");
+    },
+  });
 
   async function handleRequestOTP(e) {
     e.preventDefault();
@@ -265,7 +277,7 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
             <div className="grid grid-cols-2 gap-3 items-center">
               <button
                 type="button"
-                onClick={handleGoogleSSO}
+                onClick={() => googleLogin()}
                 disabled={loading}
                 className="py-2 px-3 rounded-full bg-panel-2 border border-border-soft hover:border-teal-dim flex items-center justify-center gap-2 text-xs font-medium text-text-main transition-colors hover:bg-panel shadow-sm h-[38px]">
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
