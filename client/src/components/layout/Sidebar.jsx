@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { key: "categories", label: "Categories", icon: "▦" },
 ];
 
-export default function Sidebar({ activeView, onNavigate }) {
+export default function Sidebar({ activeView, onNavigate, user, onOpenAuth, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
 
   function handleNavigate(key) {
@@ -72,9 +72,33 @@ export default function Sidebar({ activeView, onNavigate }) {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2 px-2 py-2 border-t border-border-soft pt-4">
-          <div className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center text-sm">🙂</div>
-          <span className="text-[13px] text-text-main">Kushagra</span>
+        <div className="border-t border-border-soft pt-3">
+          {user ? (
+            <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-panel-2 border border-border-soft">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-teal/20 border border-teal/30 flex items-center justify-center text-xs text-teal font-bold flex-shrink-0">
+                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-[12px] font-medium text-text-main truncate">{user.name}</p>
+                  <p className="text-[10px] text-text-faint truncate">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={onLogout}
+                className="text-[11px] text-text-faint hover:text-red-400 p-1 transition-colors flex-shrink-0"
+                title="Sign Out">
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="w-full py-2 px-3 rounded-xl bg-teal/10 hover:bg-teal/20 border border-teal-dim/40 text-teal text-xs font-medium flex items-center justify-center gap-2 transition-colors">
+              <span>👤</span>
+              <span>Sign In / Register</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

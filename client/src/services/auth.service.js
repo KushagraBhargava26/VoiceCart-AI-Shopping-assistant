@@ -1,0 +1,42 @@
+import { post, get } from "./api.js";
+
+const USER_KEY = "voicecart_user";
+
+export function getStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function setStoredUser(user) {
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(USER_KEY);
+  }
+}
+
+export async function loginUser({ email, password }) {
+  const user = await post("/auth/login", { email, password });
+  setStoredUser(user);
+  return user;
+}
+
+export async function signupUser({ name, email, password }) {
+  const user = await post("/auth/signup", { name, email, password });
+  setStoredUser(user);
+  return user;
+}
+
+export async function googleAuthUser({ name, email }) {
+  const user = await post("/auth/google", { name, email });
+  setStoredUser(user);
+  return user;
+}
+
+export function logoutUser() {
+  setStoredUser(null);
+}

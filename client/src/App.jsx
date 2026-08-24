@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/layout/Sidebar.jsx";
 import VoiceCard from "./components/voice/VoiceCard.jsx";
 import ShoppingListCard from "./components/shopping/ShoppingListCard.jsx";
@@ -6,12 +6,28 @@ import SuggestionsCard from "./components/suggestions/SuggestionsCard.jsx";
 import SearchCard from "./components/search/SearchCard.jsx";
 import HistoryCard from "./components/history/HistoryCard.jsx";
 import CategoriesCard from "./components/categories/CategoriesCard.jsx";
+import AuthModal from "./components/auth/AuthModal.jsx";
+import { getStoredUser, logoutUser } from "./services/auth.service.js";
 
 function App() {
   const [voiceSearchQuery, setVoiceSearchQuery] = useState(null);
   const [activeView, setActiveView] = useState("home");
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchPresetQuery, setSearchPresetQuery] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    const stored = getStoredUser();
+    if (stored) {
+      setUser(stored);
+    }
+  }, []);
+
+  function handleLogout() {
+    logoutUser();
+    setUser(null);
+  }
 
   function triggerRefresh() {
     setRefreshKey((prev) => prev + 1);
@@ -29,7 +45,18 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-bg text-text-main">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} />
+      <Sidebar
+        activeView={activeView}
+        onNavigate={setActiveView}
+        user={user}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onLogout={handleLogout}
+      />
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={(userData) => setUser(userData)}
+      />
       <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
         {activeView === "home" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">

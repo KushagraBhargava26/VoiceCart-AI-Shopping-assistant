@@ -7,6 +7,7 @@ import suggestionRoutes from "./routes/suggestion.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import historyRoutes from "./routes/history.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use("/api/v1/suggestions", suggestionRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/history", historyRoutes);
 app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`VoiceCart server running on port ${PORT}`);
