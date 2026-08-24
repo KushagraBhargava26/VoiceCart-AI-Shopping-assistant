@@ -26,7 +26,7 @@ export async function handleGetShoppingList(req, res) {
 }
 
 export async function handleAddShoppingItem(req, res) {
-  const { name, quantity, unit, category, brand } = req.body;
+  const { name, quantity, unit, category, brand, price } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     return sendError(res, 422, 'VALIDATION_ERROR', 'Item name is required.');
@@ -47,6 +47,7 @@ export async function handleAddShoppingItem(req, res) {
       unit,
       category: category || null,
       brand: brand || null,
+      price: price ? Number(price) : null,
     });
 
     res.status(201).json({

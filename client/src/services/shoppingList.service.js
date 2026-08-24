@@ -5,8 +5,8 @@ const LOCAL_HISTORY_KEY = "voicecart_local_history_store";
 
 const PRICE_LOOKUP = [
   { keywords: ["water", "bisleri", "pani", "paani"], price: 20 },
-  { keywords: ["milk", "doodh", "dudh"], price: 68 },
-  { keywords: ["bread", "pav", "bun"], price: 45 },
+  { keywords: ["milk", "doodh", "dudh", "amul milk"], price: 68 },
+  { keywords: ["bread", "pav", "bun", "brown bread"], price: 45 },
   { keywords: ["egg", "anda", "ande"], price: 55 },
   { keywords: ["butter", "makkan"], price: 58 },
   { keywords: ["paneer"], price: 95 },
@@ -30,8 +30,8 @@ const PRICE_LOOKUP = [
   { keywords: ["shampoo", "dove", "pantene"], price: 165 },
   { keywords: ["sanitizer"], price: 50 },
   { keywords: ["face wash"], price: 140 },
-  { keywords: ["rice", "chawal"], price: 65 },
-  { keywords: ["atta", "flour"], price: 55 }
+  { keywords: ["rice", "chawal", "basmati"], price: 65 },
+  { keywords: ["atta", "flour", "aashirvaad"], price: 55 }
 ];
 
 export function resolveItemPrice(itemName, providedPrice) {
@@ -44,7 +44,7 @@ export function resolveItemPrice(itemName, providedPrice) {
     }
   }
 
-  return 25;
+  return 45;
 }
 
 function archiveDeletedItemLocally(item) {
@@ -57,7 +57,7 @@ function archiveDeletedItemLocally(item) {
       category: item.category || "General",
       quantity: item.quantity || 1,
       unit: item.unit || "unit",
-      price: item.price || item.estimatedPrice || 45,
+      price: item.price || item.estimatedPrice || resolveItemPrice(item.name),
       purchasedAt: new Date().toISOString()
     };
     const list = Array.isArray(history) ? history : [];
@@ -92,8 +92,7 @@ export async function fetchShoppingList() {
       const items = rawItems.filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
       saveLocalItems(items);
       const resolvedItems = items.map((item) => {
-        const existingPrice = (item.price === 60 || item.price === 45) ? undefined : (item.price ?? item.estimatedPrice);
-        const itemPrice = resolveItemPrice(item.name, existingPrice);
+        const itemPrice = resolveItemPrice(item.name, item.price ?? item.estimatedPrice);
         return { ...item, price: itemPrice, estimatedPrice: itemPrice };
       });
       const cartTotal = resolvedItems.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
@@ -107,8 +106,7 @@ export async function fetchShoppingList() {
   } catch (err) {
     const local = getLocalItems();
     const resolvedLocal = local.map((item) => {
-      const existingPrice = (item.price === 60 || item.price === 45) ? undefined : (item.price ?? item.estimatedPrice);
-      const itemPrice = resolveItemPrice(item.name, existingPrice);
+      const itemPrice = resolveItemPrice(item.name, item.price ?? item.estimatedPrice);
       return { ...item, price: itemPrice, estimatedPrice: itemPrice };
     });
     const cartTotal = resolvedLocal.reduce((sum, item) => sum + item.price * Number(item.quantity || 1), 0);
@@ -153,7 +151,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   saveLocalItems(local);
 
   try {
-    await post('/shopping-list/items', { name: cleanName, quantity, unit, category, brand, price: resolvedPrice });
+    await post('/shopping-list/items', { name: cleanName, quantity: quantity || 1, unit: unit || 'unit', category, brand, price: resolvedPrice });
   } catch (err) {
     console.warn("Server sync pending, item saved locally:", err.message);
   }
