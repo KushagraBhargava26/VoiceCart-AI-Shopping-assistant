@@ -15,7 +15,29 @@ const EXAMPLE_COMMANDS = [
   { text: "Find toothpaste under 300", keyword: "toothpaste" },
 ];
 
-export default function VoiceCard({ onCommandProcessed, onSearchCommand }) {
+function detectNavigation(transcriptText, result) {
+  const t = (transcriptText || "").toLowerCase().trim();
+  const q = (result?.query || "").toLowerCase().trim();
+
+  if (/\b(open|show|view|go to|see)\s+(category|categories)\b/i.test(t) || q === "categories" || q === "category") {
+    return "categories";
+  }
+  if (/\b(open|show|view|go to|see)\s+(history|purchase history|past orders)\b/i.test(t) || q === "history") {
+    return "history";
+  }
+  if (/\b(open|show|view|go to|see)\s+(suggestions|smart suggestions|recommendations)\b/i.test(t) || q === "suggestions") {
+    return "suggestions";
+  }
+  if (/\b(open|show|view|go to|see)\s+(shopping list|my list|the list|cart)\b/i.test(t) || q === "shopping list" || q === "list") {
+    return "shopping-list";
+  }
+  if (/\b(go|open|show)\s+(home|dashboard)\b/i.test(t) || q === "home") {
+    return "home";
+  }
+  return null;
+}
+
+export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavigate }) {
   const [language, setLanguage] = useState("en-IN");
   const { isSupported, isListening, transcript, error: recognitionError, startListening, resetTranscript } = useVoiceRecognition(language);
 
@@ -30,6 +52,20 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand }) {
       setFeedback(null);
       try {
         const result = await sendVoiceCommand(transcript, language);
+
+        // Check if the command was a navigation request (e.g. "open categories", "show history")
+        const navTarget = detectNavigation(transcript, result);
+        if (navTarget) {
+          onNavigate?.(navTarget);
+          const label = navTarget === "shopping-list" ? "Shopping List" : navTarget.charAt(0).toUpperCase() + navTarget.slice(1);
+          setFeedback({
+            status: "success",
+            heading: "Navigating",
+            lines: [`Opened ${label}`],
+          });
+          return;
+        }
+
         const { status, heading, lines } = buildFeedback(result);
         setFeedback({ status, heading, lines });
 

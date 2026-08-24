@@ -30,7 +30,8 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
     setHasSearched(true);
     try {
       const data = await searchProducts({ query: searchTerm });
-      setResults(data.results);
+      const list = data?.results || (Array.isArray(data) ? data : []);
+      setResults(list);
     } catch (err) {
       setError(err.message);
       setResults([]);
@@ -54,7 +55,8 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
       setHasSearched(true);
       try {
         const data = await searchProducts({ category: presetQuery });
-        setResults(data.results);
+        const list = data?.results || (Array.isArray(data) ? data : []);
+        setResults(list);
       } catch (err) {
         setError(err.message);
         setResults([]);

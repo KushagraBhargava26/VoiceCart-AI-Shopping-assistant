@@ -44,11 +44,14 @@ export default function SuggestionsCard({ refreshKey, onItemAdded }) {
       try {
         setLoading(true);
         const [suggData, listData] = await Promise.all([fetchSuggestions(), fetchShoppingList()]);
-        setSuggestions(suggData.suggestions);
-        setCurrentListNames(new Set((listData.items || []).map((i) => i.name.toLowerCase())));
+        const suggList = Array.isArray(suggData) ? suggData : (suggData?.suggestions || []);
+        const currentItems = listData?.items || (Array.isArray(listData) ? listData : []);
+        setSuggestions(suggList);
+        setCurrentListNames(new Set(currentItems.map((i) => (i.name || "").toLowerCase())));
         setError(null);
       } catch (err) {
         setError(err.message);
+        setSuggestions([]);
       } finally {
         setLoading(false);
       }

@@ -41,10 +41,12 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
     try {
       setLoading(true);
       const data = await fetchShoppingList();
-      setItems(data.items);
+      const list = data?.items || (Array.isArray(data) ? data : []);
+      setItems(list);
       setError(null);
     } catch (err) {
       setError(err.message);
+      setItems([]);
     } finally {
       setLoading(false);
     }

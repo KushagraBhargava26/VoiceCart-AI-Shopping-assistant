@@ -34,7 +34,7 @@ function App() {
         {activeView === "home" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
             <div className="lg:col-span-2 space-y-5">
-              <VoiceCard onCommandProcessed={triggerRefresh} onSearchCommand={handleVoiceSearch} />
+              <VoiceCard onCommandProcessed={triggerRefresh} onSearchCommand={handleVoiceSearch} onNavigate={setActiveView} />
               <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
             </div>
             <div>

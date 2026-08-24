@@ -43,10 +43,12 @@ export default function HistoryCard({ refreshKey }) {
       try {
         setLoading(true);
         const data = await fetchHistory();
-        setHistory(data.history);
+        const list = data?.history || (Array.isArray(data) ? data : []);
+        setHistory(list);
         setError(null);
       } catch (err) {
         setError(err.message);
+        setHistory([]);
       } finally {
         setLoading(false);
       }

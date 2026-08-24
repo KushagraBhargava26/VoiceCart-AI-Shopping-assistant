@@ -41,10 +41,12 @@ export default function CategoriesCard({ onSelectCategory }) {
       try {
         setLoading(true);
         const data = await fetchCategories();
-        setCategories(data.categories);
+        const list = data?.categories || (Array.isArray(data) ? data : []);
+        setCategories(list);
         setError(null);
       } catch (err) {
         setError(err.message);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
