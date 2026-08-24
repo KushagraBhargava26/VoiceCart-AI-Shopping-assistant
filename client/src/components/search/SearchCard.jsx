@@ -80,6 +80,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
         unit: product.size || "unit",
         brand: product.brand,
         category: product.category,
+        price: product.price,
       });
       onItemAdded?.();
       setSuccessMessage(`${product.name} added to your shopping list.`);

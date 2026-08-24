@@ -4,7 +4,9 @@ import { addItem } from "../../services/shoppingList.service.js";
 import { getItemIcon } from "../../utils/itemIcons.js";
 
 function formatTime(dateStr) {
+  if (!dateStr) return "Recently";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Recently";
   return date.toLocaleString("en-IN", {
     day: "numeric",
     month: "short",
@@ -46,7 +48,7 @@ export default function HistoryCard({ refreshKey, onItemAdded }) {
       try {
         setLoading(true);
         const data = await fetchHistory();
-        const list = data?.history || (Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : (data?.history || []);
         setHistory(list);
         setError(null);
       } catch (err) {
@@ -60,17 +62,18 @@ export default function HistoryCard({ refreshKey, onItemAdded }) {
   }, [refreshKey]);
 
   async function handleReorder(entry) {
+    const itemName = entry.name || entry.itemName || "Item";
     setReorderingId(entry.id);
     try {
       await addItem({
-        name: entry.itemName,
-        quantity: entry.quantity,
-        unit: entry.unit,
-        category: entry.category,
+        name: itemName,
+        quantity: entry.quantity || 1,
+        unit: entry.unit || "unit",
+        category: entry.category || "",
+        price: entry.price,
       });
       setReorderedIds((prev) => new Set(prev).add(entry.id));
       onItemAdded?.();
-      // Reset button after 3 seconds so they can reorder again if needed
       setTimeout(() => {
         setReorderedIds((prev) => {
           const next = new Set(prev);
@@ -116,6 +119,10 @@ export default function HistoryCard({ refreshKey, onItemAdded }) {
       {!loading && (
         <div className="divide-y divide-border-soft/60">
           {history.map((entry) => {
+            const name = entry.name || entry.itemName || "Item";
+            const qty = entry.quantity || 1;
+            const unit = entry.unit || "unit";
+            const dateVal = entry.purchasedAt || entry.lastBoughtAt || entry.createdAt;
             const isAdded = reorderedIds.has(entry.id);
             const isAdding = reorderingId === entry.id;
 
@@ -123,15 +130,15 @@ export default function HistoryCard({ refreshKey, onItemAdded }) {
               <div
                 key={entry.id}
                 className="flex items-center justify-between py-2.5 hover:bg-panel-2/30 px-2 -mx-2 rounded-lg text-[13px] transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg filter drop-shadow-sm">{getItemIcon(entry.itemName, entry.category)}</span>
-                  <div>
-                    <div className="font-medium text-text-main">
-                      {entry.quantity} {entry.unit} of {entry.itemName}
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-lg filter drop-shadow-sm shrink-0">{getItemIcon(name, entry.category)}</span>
+                  <div className="min-w-0">
+                    <div className="font-medium text-text-main truncate">
+                      {qty} {unit} of {name}
                     </div>
-                    <div className="text-[11px] text-text-faint flex items-center gap-2">
+                    <div className="text-[11px] text-text-faint flex items-center gap-2 truncate">
                       {entry.category && <span>{entry.category}</span>}
-                      <span>• {formatTime(entry.purchasedAt)}</span>
+                      <span>• {formatTime(dateVal)}</span>
                     </div>
                   </div>
                 </div>
@@ -139,7 +146,7 @@ export default function HistoryCard({ refreshKey, onItemAdded }) {
                 <button
                   onClick={() => handleReorder(entry)}
                   disabled={isAdded || isAdding}
-                  className={`text-[11px] px-2.5 py-1 rounded-md border font-medium transition-all ${
+                  className={`text-[11px] px-2.5 py-1 rounded-md border font-medium transition-all shrink-0 ${
                     isAdded
                       ? "border-teal/40 bg-teal/10 text-teal cursor-default"
                       : isAdding
