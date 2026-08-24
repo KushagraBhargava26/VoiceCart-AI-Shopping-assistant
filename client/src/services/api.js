@@ -3,7 +3,7 @@ function getBaseUrl() {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
   }
   if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-    return "/api/v1";
+    return "https://voicecart-backend.onrender.com/api/v1";
   }
   return "http://localhost:5000/api/v1";
 }

@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api|assets|favicon).*)",
+      "source": "/api/v1/:path*",
+      "destination": "https://voicecart-backend.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/((?!api/|assets/|favicon).*)",
       "destination": "/index.html"
     }
   ]
