@@ -77,11 +77,13 @@ export default function Sidebar({ activeView, onNavigate, user, onOpenAuth, onLo
             <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-panel-2 border border-border-soft">
               <div className="flex items-center gap-2 overflow-hidden">
                 <div className="w-7 h-7 rounded-full bg-teal/20 border border-teal/30 flex items-center justify-center text-xs text-teal font-bold flex-shrink-0">
-                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  {(user?.name || user?.email || "U").toString().charAt(0).toUpperCase()}
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-[12px] font-medium text-text-main truncate">{user.name}</p>
-                  <p className="text-[10px] text-text-faint truncate">{user.email}</p>
+                  <p className="text-[12px] font-medium text-text-main truncate">
+                    {user?.name || user?.email?.split('@')[0] || "User"}
+                  </p>
+                  <p className="text-[10px] text-text-faint truncate">{user?.email || ""}</p>
                 </div>
               </div>
               <button
