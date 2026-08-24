@@ -160,7 +160,7 @@ export default function SearchCard({ onItemAdded, presetQuery, voiceQuery }) {
                   </div>
                   <div className="text-[11px] text-text-faint">
                     {product.category} {product.size && `• ${product.size}`}
-                    {product.price && ` • ${product.currency} ${product.price}`}
+                    {product.price && ` • ₹${product.price}`}
                   </div>
                 </div>
               </div>
