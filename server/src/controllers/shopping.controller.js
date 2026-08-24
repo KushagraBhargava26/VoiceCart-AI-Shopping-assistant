@@ -14,10 +14,10 @@ function sendError(res, status, code, message) {
 
 export async function handleGetShoppingList(req, res) {
   try {
-    const items = await getShoppingList();
+    const listData = await getShoppingList();
     res.status(200).json({
       success: true,
-      data: { items },
+      data: listData,
     });
   } catch (err) {
     console.error('Error fetching shopping list:', err);

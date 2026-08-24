@@ -30,6 +30,11 @@ export default function ShoppingItemRow({ item, onUpdateQuantity, onDelete }) {
           </button>
         </div>
         <span className="text-text-dim text-[11px] w-14">{item.unit}</span>
+        {item.estimatedPrice !== undefined && item.estimatedPrice !== null && (
+          <span className="text-[11.5px] font-medium text-teal w-12 text-right">
+            ₹{item.estimatedPrice}
+          </span>
+        )}
         <button
           onClick={() => onDelete(item.id)}
           className="text-red-400/80 hover:text-red-400 transition-colors"
