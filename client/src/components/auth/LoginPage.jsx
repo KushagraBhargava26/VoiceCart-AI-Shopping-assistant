@@ -475,9 +475,13 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
 }
 
 export default function LoginPage(props) {
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <LoginPageContent {...props} />
-    </GoogleOAuthProvider>
-  );
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  if (clientId && clientId.length > 20) {
+    return (
+      <GoogleOAuthProvider clientId={clientId}>
+        <LoginPageContent {...props} />
+      </GoogleOAuthProvider>
+    );
+  }
+  return <LoginPageContent {...props} />;
 }
