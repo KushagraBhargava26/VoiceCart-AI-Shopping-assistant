@@ -1,51 +1,98 @@
 import { get, post, patch, del } from './api.js';
 
+const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
+
+function getLocalItems() {
+  try {
+    const data = localStorage.getItem(LOCAL_ITEMS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalItems(items) {
+  try {
+    localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(items));
+  } catch (e) {}
+}
+
 export async function fetchShoppingList() {
   try {
     const res = await get('/shopping-list');
-    return res;
+    if (res && res.items && Array.isArray(res.items)) {
+      const local = getLocalItems();
+      const combinedMap = new Map();
+      [...res.items, ...local].forEach(item => combinedMap.set(item.id || item.name, item));
+      const combined = Array.from(combinedMap.values());
+      const cartTotal = combined.reduce((sum, item) => sum + ((item.price || 60) * (item.quantity || 1)), 0);
+      return { items: combined, cartTotal, currency: "INR" };
+    }
+    throw new Error("No server items");
   } catch (err) {
-    console.warn("Shopping list API unreachable, returning clean empty list:", err.message);
+    const local = getLocalItems();
+    const cartTotal = local.reduce((sum, item) => sum + ((item.price || 60) * (item.quantity || 1)), 0);
     return {
-      items: [],
-      cartTotal: 0,
-      partialTotal: false,
+      items: local,
+      cartTotal,
       currency: "INR"
     };
   }
 }
 
-export async function addItem({ name, quantity, unit, category, brand }) {
-  try {
-    return await post('/shopping-list/items', { name, quantity, unit, category, brand });
-  } catch (err) {
-    console.warn("Add item API unreachable, using local fallback item:", err.message);
-    return {
-      id: `local_${Date.now()}`,
-      name,
-      quantity: quantity || 1,
-      unit: unit || 'pcs',
-      category: category || 'General',
-      brand: brand || '',
-      status: 'PENDING'
-    };
+export async function addItem({ name, quantity, unit, category, brand, price }) {
+  const newItem = {
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+    name,
+    quantity: quantity || 1,
+    unit: unit || 'unit',
+    category: category || 'General',
+    brand: brand || '',
+    price: price || 60,
+    status: 'PENDING'
+  };
+
+  const local = getLocalItems();
+  const existingIdx = local.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
+  if (existingIdx >= 0) {
+    local[existingIdx].quantity += (quantity || 1);
+  } else {
+    local.push(newItem);
   }
+  saveLocalItems(local);
+
+  try {
+    await post('/shopping-list/items', { name, quantity, unit, category, brand, price });
+  } catch (err) {
+    console.warn("Server sync pending, item saved locally:", err.message);
+  }
+
+  return newItem;
 }
 
 export async function updateItem(id, updates) {
+  const local = getLocalItems();
+  const idx = local.findIndex(i => i.id === id);
+  if (idx >= 0) {
+    local[idx] = { ...local[idx], ...updates };
+    saveLocalItems(local);
+  }
+
   try {
     return await patch(`/shopping-list/items/${id}`, updates);
   } catch (err) {
-    console.warn("Update item API unreachable, using local fallback:", err.message);
     return { id, ...updates };
   }
 }
 
 export async function deleteItem(id) {
+  const local = getLocalItems();
+  const filtered = local.filter(i => i.id !== id);
+  saveLocalItems(filtered);
+
   try {
     return await del(`/shopping-list/items/${id}`);
   } catch (err) {
-    console.warn("Delete item API unreachable, using local fallback:", err.message);
     return { success: true };
   }
 }
