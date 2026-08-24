@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useVoiceRecognition } from "../../hooks/useVoiceRecognition.js";
 import { sendVoiceCommand } from "../../services/command.service.js";
+import { addItem } from "../../services/shoppingList.service.js";
 import { getItemIcon } from "../../utils/itemIcons.js";
 import { speakResponse } from "../../utils/speech.js";
 
@@ -67,6 +68,8 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [productPicker, setProductPicker] = useState(null); // { pendingItems, results }
+  const [addingProductId, setAddingProductId] = useState(null);
 
   const isHindi = language === "hi-IN";
 
@@ -76,51 +79,42 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
     async function processCommand() {
       setProcessing(true);
       setFeedback(null);
+      setProductPicker(null);
       try {
         const result = await sendVoiceCommand(transcript, language);
 
-        // Check if the command was a navigation request (e.g. "open categories", "show history")
+        // Navigation detection
         const navTarget = detectNavigation(transcript, result);
         if (navTarget) {
           onNavigate?.(navTarget);
           const label = navTarget === "shopping-list" ? "Shopping List" : navTarget.charAt(0).toUpperCase() + navTarget.slice(1);
           const msg = isHindi ? `${label} khol diya gaya hai.` : `Opened ${label}.`;
-          setFeedback({
-            status: "success",
-            heading: isHindi ? "Navigation safal raha" : "Navigating",
-            lines: [msg],
-          });
-          if (audioFeedback) {
-            speakResponse(msg, language);
-          }
+          setFeedback({ status: "success", heading: isHindi ? "Navigation safal raha" : "Navigating", lines: [msg] });
+          if (audioFeedback) speakResponse(msg, language);
+          return;
+        }
+
+        // Product picker
+        if (result.action === "PRODUCT_SELECTION_REQUIRED") {
+          setProductPicker({ pendingItems: result.pendingItems, results: result.results });
+          const spokenMsg = isHindi
+            ? "Aapke liye kuch options hain. Kaunsa product lena chahenge?"
+            : "I found some products. Which one would you like to add?";
+          if (audioFeedback) speakResponse(spokenMsg, language);
           return;
         }
 
         const { status, heading, lines, spokenText } = buildFeedback(result, language);
         setFeedback({ status, heading, lines });
 
-        // Play audio spoken feedback
-        if (audioFeedback && spokenText) {
-          speakResponse(spokenText, language);
-        }
+        if (audioFeedback && spokenText) speakResponse(spokenText, language);
+        if (status === "success") onCommandProcessed?.();
+        if (result.action === "SEARCH_PRODUCT") onSearchCommand?.(result.query);
 
-        if (status === "success") {
-          onCommandProcessed?.();
-        }
-
-        if (result.action === "SEARCH_PRODUCT") {
-          onSearchCommand?.(result.query);
-        }
       } catch (err) {
         const errMsg = isHindi ? "Maaf kijiye, command execute nahi ho paya." : err.message;
-        setFeedback({
-          status: "error",
-          heading: isHindi ? "Command fail ho gaya" : "Command failed",
-          lines: [errMsg],
-        });
-        if (audioFeedback) {
-          speakResponse(isHindi ? "Maaf kijiye, command execute nahi ho paya." : "Sorry, the command could not be processed.", language);
-        }
+        setFeedback({ status: "error", heading: isHindi ? "Command fail ho gaya" : "Command failed", lines: [errMsg] });
+        if (audioFeedback) speakResponse(isHindi ? "Maaf kijiye, command execute nahi ho paya." : "Sorry, the command could not be processed.", language);
       } finally {
         setProcessing(false);
         resetTranscript();
@@ -129,6 +123,43 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
     processCommand();
   }, [transcript, language, audioFeedback]);
+
+  async function handleProductSelect(product) {
+    setAddingProductId(product.id);
+    try {
+      await addItem({
+        name: product.name,
+        quantity: productPicker?.pendingItems?.[0]?.quantity || 1,
+        unit: productPicker?.pendingItems?.[0]?.unit || product.size || "unit",
+        brand: product.brand,
+        category: product.category,
+      });
+      const msg = isHindi
+        ? `${product.name} list mein add ho gaya.`
+        : `Added ${product.name} to your shopping list.`;
+      setProductPicker(null);
+      setFeedback({ status: "success", heading: isHindi ? "Product add ho gaya" : "Added to list", lines: [`${getItemIcon(product.name, product.category)} ${product.name}${product.brand ? ` — ${product.brand}` : ""}`] });
+      if (audioFeedback) speakResponse(msg, language);
+      onCommandProcessed?.();
+    } catch (err) {
+      setFeedback({ status: "error", heading: "Failed", lines: [err.message] });
+    } finally {
+      setAddingProductId(null);
+    }
+  }
+
+  function handleAddGeneric() {
+    if (!productPicker?.pendingItems?.length) return;
+    const item = productPicker.pendingItems[0];
+    setProductPicker(null);
+    // Directly call addItem with the generic name
+    addItem({ name: item.name, quantity: item.quantity || 1, unit: item.unit || "unit" })
+      .then(() => {
+        setFeedback({ status: "success", heading: isHindi ? "Command safal raha" : "Added to list", lines: [`${getItemIcon(item.name)} Added ${item.quantity || 1} ${item.unit || "unit"} of ${item.name}`] });
+        onCommandProcessed?.();
+      })
+      .catch((err) => setFeedback({ status: "error", heading: "Failed", lines: [err.message] }));
+  }
 
   function buildFeedback(result, lang) {
     const isHi = lang === "hi-IN";
@@ -321,7 +352,56 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         );
       })()}
 
-      {!isListening && !processing && !feedback && (
+      {/* Product Picker — shown when voice command triggers PRODUCT_SELECTION_REQUIRED */}
+      {productPicker && (
+        <div className="mt-4 text-left rounded-lg border border-purple/30 bg-purple/5 p-3">
+          <p className="text-[12px] font-medium text-purple mb-2">
+            🛍️ {isHindi ? "Kaunsa product lena chahenge?" : "Which product would you like to add?"}
+          </p>
+          <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+            {productPicker.results.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => handleProductSelect(product)}
+                disabled={addingProductId !== null}
+                className="flex items-center justify-between gap-2 w-full px-3 py-2 rounded-lg bg-panel-2 border border-border-soft hover:border-purple/40 hover:bg-purple/10 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="text-lg flex-shrink-0">{getItemIcon(product.name, product.category)}</span>
+                  <div className="overflow-hidden">
+                    <p className="text-[12px] font-medium text-text-main truncate">{product.name}</p>
+                    <p className="text-[10.5px] text-text-faint truncate">
+                      {[product.brand, product.size, product.price ? `₹${product.price}` : null].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+                {addingProductId === product.id ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-purple border-t-transparent animate-spin flex-shrink-0" />
+                ) : (
+                  <span className="text-[11px] text-purple font-medium flex-shrink-0">+ Add</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleAddGeneric}
+              className="text-[11px] text-text-dim hover:text-text-main underline underline-offset-2"
+            >
+              {isHindi ? "Generic item add karo" : "Add without picking"}
+            </button>
+            <span className="text-text-faint text-[11px]">·</span>
+            <button
+              onClick={() => setProductPicker(null)}
+              className="text-[11px] text-text-faint hover:text-text-dim"
+            >
+              {isHindi ? "Cancel" : "Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isListening && !processing && !feedback && !productPicker && (
         <div className="flex flex-wrap gap-2 justify-center mt-4">
           {examples.map((cmd) => (
             <span key={cmd.text} className="text-[11px] bg-panel-2 border border-border-soft text-text-dim px-3 py-1 rounded-full">

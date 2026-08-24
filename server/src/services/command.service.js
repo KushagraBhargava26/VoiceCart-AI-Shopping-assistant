@@ -101,6 +101,24 @@ export async function processVoiceCommand(transcript) {
 
   switch (command.action) {
     case "ADD_ITEM": {
+      // Before blindly adding, check if catalog has products for this item.
+      // If yes → ask user to pick which product they want (better UX).
+      // If no catalog match → fall through to generic add as before.
+      const catalogResults = await Promise.all(
+        command.items.map((item) => searchProducts({ query: item.name }))
+      );
+      const allResults = catalogResults.flat();
+
+      if (allResults.length > 0) {
+        // Return selection prompt — frontend will show a product picker
+        return {
+          action: "PRODUCT_SELECTION_REQUIRED",
+          pendingItems: command.items,   // original voice-parsed items (name, qty, unit)
+          results: allResults.slice(0, 8), // cap to 8 options max
+        };
+      }
+
+      // No catalog match — add generically
       const items = await executeAddItem(command.items);
       return {
         action: "ADD_ITEM",
