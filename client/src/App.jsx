@@ -10,6 +10,25 @@ import CategoriesCard from "./components/categories/CategoriesCard.jsx";
 import LoginPage from "./components/auth/LoginPage.jsx";
 import { getStoredUser, logoutUser } from "./services/auth.service.js";
 
+const GUEST_PASSED_KEY = "voicecart_guest_session";
+
+function MainLayout({ activeView, onNavigate, user, onOpenAuth, onLogout, children }) {
+  return (
+    <div className="flex min-h-screen bg-bg text-text-main">
+      <Sidebar
+        activeView={activeView}
+        onNavigate={onNavigate}
+        user={user}
+        onOpenAuth={onOpenAuth}
+        onLogout={onLogout}
+      />
+      <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
+        {children}
+      </main>
+    </div>
+  );
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,19 +40,31 @@ function AppContent() {
 
   useEffect(() => {
     const stored = getStoredUser();
+    const isGuest = sessionStorage.getItem(GUEST_PASSED_KEY);
+
     if (stored) {
       setUser(stored);
+    } else if (!isGuest && location.pathname !== "/login") {
+      // First-time visit: Redirect to /login page by default
+      navigate("/login");
     }
   }, []);
 
   function handleLogout() {
     logoutUser();
     setUser(null);
+    sessionStorage.removeItem(GUEST_PASSED_KEY);
     navigate("/login");
   }
 
   function handleAuthSuccess(userData) {
     setUser(userData);
+    sessionStorage.setItem(GUEST_PASSED_KEY, "true");
+    navigate("/");
+  }
+
+  function handleGuestLogin() {
+    sessionStorage.setItem(GUEST_PASSED_KEY, "true");
     navigate("/");
   }
 
@@ -72,116 +103,120 @@ function AppContent() {
     navigate(routeMap[key] || "/");
   }
 
-  // Standalone Login Page route
-  if (path === "/login") {
-    return (
-      <LoginPage
-        onLoginSuccess={handleAuthSuccess}
-        onGuestLogin={() => navigate("/")}
-      />
-    );
-  }
-
   return (
-    <div className="flex min-h-screen bg-bg text-text-main">
-      <Sidebar
-        activeView={activeView}
-        onNavigate={handleSidebarNavigate}
-        user={user}
-        onOpenAuth={() => navigate("/login")}
-        onLogout={handleLogout}
+    <Routes>
+      {/* Standalone Login Route */}
+      <Route
+        path="/login"
+        element={
+          <LoginPage
+            onLoginSuccess={handleAuthSuccess}
+            onGuestLogin={handleGuestLogin}
+          />
+        }
       />
-      <main className="flex-1 pt-20 px-4 pb-4 md:p-7">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-                <div className="lg:col-span-2 space-y-5">
-                  <VoiceCard
-                    onCommandProcessed={triggerRefresh}
-                    onSearchCommand={handleVoiceSearch}
-                    onNavigate={handleSidebarNavigate}
-                  />
-                  <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
-                </div>
-                <div>
-                  <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
-                </div>
-              </div>
-            }
-          />
-          <Route
-            path="/shopping-list"
-            element={
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-                <div className="lg:col-span-2">
-                  <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
-                </div>
-                <div>
-                  <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
-                </div>
-              </div>
-            }
-          />
-          <Route
-            path="/suggestions"
-            element={
-              <div className="max-w-xl">
-                <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
-              </div>
-            }
-          />
-          <Route
-            path="/search"
-            element={
-              <div className="max-w-xl">
-                <SearchCard
-                  onItemAdded={triggerRefresh}
-                  presetQuery={searchPresetQuery}
-                  voiceQuery={voiceSearchQuery}
-                />
-              </div>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <div className="max-w-xl">
-                <HistoryCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
-              </div>
-            }
-          />
-          <Route
-            path="/categories"
-            element={
-              <div className="max-w-2xl">
-                <CategoriesCard onSelectCategory={handleSelectCategory} />
-              </div>
-            }
-          />
-          {/* Catch-all fallback */}
-          <Route
-            path="*"
-            element={
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-                <div className="lg:col-span-2 space-y-5">
-                  <VoiceCard
-                    onCommandProcessed={triggerRefresh}
-                    onSearchCommand={handleVoiceSearch}
-                    onNavigate={handleSidebarNavigate}
-                  />
-                  <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
-                </div>
-                <div>
-                  <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
-                </div>
-              </div>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
+
+      {/* Connected Main Application Routes */}
+      <Route
+        path="/*"
+        element={
+          <MainLayout
+            activeView={activeView}
+            onNavigate={handleSidebarNavigate}
+            user={user}
+            onOpenAuth={() => navigate("/login")}
+            onLogout={handleLogout}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                    <div className="lg:col-span-2 space-y-5">
+                      <VoiceCard
+                        onCommandProcessed={triggerRefresh}
+                        onSearchCommand={handleVoiceSearch}
+                        onNavigate={handleSidebarNavigate}
+                      />
+                      <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
+                    </div>
+                    <div>
+                      <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/shopping-list"
+                element={
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                    <div className="lg:col-span-2">
+                      <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
+                    </div>
+                    <div>
+                      <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/suggestions"
+                element={
+                  <div className="max-w-xl">
+                    <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
+                  </div>
+                }
+              />
+              <Route
+                path="/search"
+                element={
+                  <div className="max-w-xl">
+                    <SearchCard
+                      onItemAdded={triggerRefresh}
+                      presetQuery={searchPresetQuery}
+                      voiceQuery={voiceSearchQuery}
+                    />
+                  </div>
+                }
+              />
+              <Route
+                path="/history"
+                element={
+                  <div className="max-w-xl">
+                    <HistoryCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
+                  </div>
+                }
+              />
+              <Route
+                path="/categories"
+                element={
+                  <div className="max-w-2xl">
+                    <CategoriesCard onSelectCategory={handleSelectCategory} />
+                  </div>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                    <div className="lg:col-span-2 space-y-5">
+                      <VoiceCard
+                        onCommandProcessed={triggerRefresh}
+                        onSearchCommand={handleVoiceSearch}
+                        onNavigate={handleSidebarNavigate}
+                      />
+                      <ShoppingListCard refreshKey={refreshKey} onChange={triggerRefresh} />
+                    </div>
+                    <div>
+                      <SuggestionsCard refreshKey={refreshKey} onItemAdded={triggerRefresh} />
+                    </div>
+                  </div>
+                }
+              />
+            </Routes>
+          </MainLayout>
+        }
+      />
+    </Routes>
   );
 }
 
