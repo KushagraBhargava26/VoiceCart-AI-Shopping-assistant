@@ -23,9 +23,21 @@ async function request(path, options = {}) {
     clearTimeout(timeoutId);
   }
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let data;
 
-  if (!response.ok || !data.success) {
+  if (contentType.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      throw new Error("Invalid response from server. Please try again.");
+    }
+  } else {
+    console.error("Non-JSON response received from API:", response.status, contentType);
+    throw new Error("Backend server is starting up or unavailable. Please try again in a moment.");
+  }
+
+  if (!response.ok || !data?.success) {
     const message = data?.error?.message || 'Something went wrong. Please try again.';
     const error = new Error(message);
     error.code = data?.error?.code;
