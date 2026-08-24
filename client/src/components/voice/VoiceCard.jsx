@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useVoiceRecognition } from "../../hooks/useVoiceRecognition.js";
 import { sendVoiceCommand } from "../../services/command.service.js";
 import { getItemIcon } from "../../utils/itemIcons.js";
+import { speakResponse } from "../../utils/speech.js";
 
 const LANGUAGES = [
   { code: "en-IN", label: "English (India)" },
@@ -39,6 +40,7 @@ function detectNavigation(transcriptText, result) {
 
 export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavigate }) {
   const [language, setLanguage] = useState("en-IN");
+  const [audioFeedback, setAudioFeedback] = useState(true);
   const { isSupported, isListening, transcript, error: recognitionError, startListening, resetTranscript } = useVoiceRecognition(language);
 
   const [processing, setProcessing] = useState(false);
@@ -58,16 +60,25 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         if (navTarget) {
           onNavigate?.(navTarget);
           const label = navTarget === "shopping-list" ? "Shopping List" : navTarget.charAt(0).toUpperCase() + navTarget.slice(1);
+          const msg = `Opened ${label}`;
           setFeedback({
             status: "success",
             heading: "Navigating",
-            lines: [`Opened ${label}`],
+            lines: [msg],
           });
+          if (audioFeedback) {
+            speakResponse(msg, language);
+          }
           return;
         }
 
-        const { status, heading, lines } = buildFeedback(result);
+        const { status, heading, lines, spokenText } = buildFeedback(result);
         setFeedback({ status, heading, lines });
+
+        // Play audio spoken feedback
+        if (audioFeedback && spokenText) {
+          speakResponse(spokenText, language);
+        }
 
         if (status === "success") {
           onCommandProcessed?.();
@@ -78,6 +89,9 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         }
       } catch (err) {
         setFeedback({ status: "error", heading: "Command failed", lines: [err.message] });
+        if (audioFeedback) {
+          speakResponse("Sorry, the command could not be processed.", language);
+        }
       } finally {
         setProcessing(false);
         resetTranscript();
@@ -89,32 +103,48 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
   function buildFeedback(result) {
     switch (result.action) {
-      case "ADD_ITEM":
+      case "ADD_ITEM": {
+        const items = result.items || [];
+        const lines = items.map((i) => `${getItemIcon(i.name)} Added ${i.quantity} ${i.unit} of ${i.name}`);
+        const spokenText =
+          items.length === 1
+            ? `Added ${items[0].quantity} ${items[0].unit} of ${items[0].name} to your shopping list.`
+            : `Added ${items.map((i) => `${i.quantity} ${i.unit} of ${i.name}`).join(" and ")} to your shopping list.`;
         return {
           status: "success",
           heading: "Command executed successfully",
-          lines: result.items.map((i) => `${getItemIcon(i.name)} Added ${i.quantity} ${i.unit} of ${i.name}`),
+          lines,
+          spokenText,
         };
+      }
       case "REMOVE_ITEM":
       case "UPDATE_ITEM":
-        return { status: "success", heading: "Command executed successfully", lines: [result.message] };
+        return {
+          status: "success",
+          heading: "Command executed successfully",
+          lines: [result.message],
+          spokenText: result.message,
+        };
       case "SEARCH_PRODUCT":
         return {
           status: "success",
           heading: "Command executed successfully",
           lines: [`Found ${result.results.length} result(s) for "${result.query}"`],
+          spokenText: `Found ${result.results.length} products for ${result.query}.`,
         };
       case "GET_SUGGESTIONS":
         return {
           status: "success",
           heading: "Command executed successfully",
           lines: [`Here are ${result.suggestions.length} suggestion(s) for you`],
+          spokenText: `Here are ${result.suggestions.length} suggestions for your shopping list.`,
         };
       case "CLARIFICATION_REQUIRED":
         return {
           status: "partial",
           heading: "Could you clarify?",
           lines: [result.message],
+          spokenText: result.message,
         };
       case "UNKNOWN":
       default:
@@ -122,6 +152,7 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           status: "partial",
           heading: "Didn't understand that",
           lines: [result.message || "Sorry, I didn't understand that. Try rephrasing your command."],
+          spokenText: "Sorry, I did not understand that command. Please try again.",
         };
     }
   }
@@ -160,15 +191,31 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
   return (
     <div className="bg-panel border border-border-soft rounded-xl p-5 text-center">
-      <div className="inline-flex items-center gap-2 bg-panel-2 border border-border-soft rounded-full px-3 py-1.5 text-[11px] text-text-dim mb-5">
-        🌐
-        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="bg-transparent outline-none">
-          {LANGUAGES.map((lang) => (
-            <option key={lang.code} value={lang.code} className="bg-panel-2">
-              {lang.label}
-            </option>
-          ))}
-        </select>
+      <div className="flex items-center justify-center gap-2 mb-5">
+        {/* Language selector */}
+        <div className="inline-flex items-center gap-1.5 bg-panel-2 border border-border-soft rounded-full px-3 py-1 text-[11px] text-text-dim">
+          <span>🌐</span>
+          <select value={language} onChange={(e) => setLanguage(e.target.value)} className="bg-transparent outline-none text-text-main cursor-pointer">
+            {LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code} className="bg-panel-2 text-text-main">
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Audio response toggle */}
+        <button
+          onClick={() => setAudioFeedback((prev) => !prev)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border transition-colors ${
+            audioFeedback
+              ? "bg-teal/10 border-teal/30 text-teal"
+              : "bg-panel-2 border-border-soft text-text-faint hover:text-text-dim"
+          }`}
+          title={audioFeedback ? "Voice audio response enabled" : "Voice audio response muted"}>
+          <span>{audioFeedback ? "🔊" : "🔇"}</span>
+          <span>{audioFeedback ? "Voice on" : "Muted"}</span>
+        </button>
       </div>
 
       <button
@@ -176,14 +223,14 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         disabled={isListening || processing}
         className={`w-28 h-28 rounded-full mx-auto flex items-center justify-center text-4xl border transition-all ${
           isListening
-            ? "border-teal shadow-[0_0_30px_rgba(29,211,168,0.35)] bg-teal/10"
-            : "border-border-soft bg-panel-2 hover:border-teal-dim"
+            ? "border-teal shadow-[0_0_30px_rgba(29,211,168,0.35)] bg-teal/10 scale-105"
+            : "border-border-soft bg-panel-2 hover:border-teal-dim hover:scale-102"
         }`}>
         🎤
       </button>
 
       <div className="mt-4">
-        {isListening && <p className="text-[15px] font-medium text-teal">I'm listening...</p>}
+        {isListening && <p className="text-[15px] font-medium text-teal animate-pulse">I'm listening...</p>}
         {processing && (
           <div className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 rounded-full border-2 border-purple border-t-transparent animate-spin" />
