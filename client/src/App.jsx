@@ -38,12 +38,22 @@ function AppContent() {
   const [searchPresetQuery, setSearchPresetQuery] = useState(null);
   const [user, setUser] = useState(null);
 
+  // Auth guard: on every route change, check if user is authenticated or has guest session
   useEffect(() => {
     const stored = getStoredUser();
     if (stored) {
       setUser(stored);
     }
-  }, []);
+
+    // If not on login page, check auth
+    if (location.pathname !== "/login") {
+      const hasUser = !!stored;
+      const hasGuest = !!sessionStorage.getItem(GUEST_PASSED_KEY);
+      if (!hasUser && !hasGuest) {
+        navigate("/login", { replace: true });
+      }
+    }
+  }, [location.pathname]);
 
   function handleLogout() {
     logoutUser();
