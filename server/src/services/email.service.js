@@ -6,13 +6,16 @@ import nodemailer from "nodemailer";
  * with fallback to Ethereal / test SMTP.
  */
 async function getTransporter() {
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  const user = (process.env.EMAIL_USER || "").trim();
+  const rawPass = process.env.EMAIL_PASS || "";
+  const pass = rawPass.replace(/\s+/g, "");
+
+  if (user && pass) {
     return nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user, pass },
     });
   }
 
