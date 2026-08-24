@@ -7,6 +7,7 @@ const TYPE_ICONS = {
   FREQUENT_ITEM: "🔁",
   SEASONAL: "🍂",
   COMPLEMENTARY: "🔄",
+  SUBSTITUTE: "🌱",
 };
 
 function SkeletonRow() {
