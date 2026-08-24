@@ -68,7 +68,10 @@ function archiveDeletedItemLocally(item) {
 export function getLocalItems() {
   try {
     const data = localStorage.getItem(LOCAL_ITEMS_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
   } catch (e) {
     return [];
   }
@@ -76,7 +79,8 @@ export function getLocalItems() {
 
 export function saveLocalItems(items) {
   try {
-    localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(items));
+    const valid = (Array.isArray(items) ? items : []).filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
+    localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(valid));
   } catch (e) {}
 }
 
@@ -84,7 +88,8 @@ export async function fetchShoppingList() {
   try {
     const res = await get('/shopping-list');
     if (res && (res.items || Array.isArray(res))) {
-      const items = res.items || res;
+      const rawItems = res.items || res;
+      const items = rawItems.filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
       saveLocalItems(items);
       const resolvedItems = items.map((item) => {
         const existingPrice = (item.price === 60 || item.price === 45) ? undefined : (item.price ?? item.estimatedPrice);
@@ -116,11 +121,17 @@ export async function fetchShoppingList() {
 }
 
 export async function addItem({ name, quantity, unit, category, brand, price }) {
-  const resolvedPrice = resolveItemPrice(name, price);
+  const cleanName = (name || "").toString().trim();
+  if (!cleanName || cleanName.length < 2 || ["1", "2", "3", "l", "litr e", "litre", "unit"].includes(cleanName.toLowerCase())) {
+    console.warn("Invalid item name attempted, ignoring malformed item:", name);
+    return null;
+  }
+
+  const resolvedPrice = resolveItemPrice(cleanName, price);
 
   const newItem = {
     id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-    name,
+    name: cleanName,
     quantity: quantity || 1,
     unit: unit || 'unit',
     category: category || 'General',
@@ -131,7 +142,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   };
 
   const local = getLocalItems();
-  const existingIdx = local.findIndex((i) => i.name.toLowerCase() === name.toLowerCase());
+  const existingIdx = local.findIndex((i) => i.name.toLowerCase() === cleanName.toLowerCase());
   if (existingIdx >= 0) {
     local[existingIdx].quantity += quantity || 1;
     local[existingIdx].price = resolvedPrice;
@@ -142,7 +153,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   saveLocalItems(local);
 
   try {
-    await post('/shopping-list/items', { name, quantity, unit, category, brand, price: resolvedPrice });
+    await post('/shopping-list/items', { name: cleanName, quantity, unit, category, brand, price: resolvedPrice });
   } catch (err) {
     console.warn("Server sync pending, item saved locally:", err.message);
   }

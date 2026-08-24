@@ -78,30 +78,37 @@ const GENERIC_CHOICES = {
 
 function stripFillers(text) {
   let str = (text || "").trim();
+
+  // 1. Strip leading action prefixes safely
   const prefixes = [
-    "i want to add", "i need to add", "please add", "add", "put", "buy", "need", "want", "get",
-    "i want", "i need", "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "lano", "le aao",
+    "i want to add", "i need to add", "please add", "can you add",
+    "add to cart", "add to list", "add me", "add", "put", "buy", "need", "want", "get",
+    "i want", "i need", "please", "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "lano", "le aao",
     "ऐड करो", "ऐड कर दो", "ऐड", "डालो", "डाल दो", "चाहिए", "कीजिये"
   ];
 
   for (const p of prefixes) {
-    if (str.toLowerCase().startsWith(p.toLowerCase() + " ")) {
+    const pLower = p.toLowerCase();
+    if (str.toLowerCase().startsWith(pLower + " ")) {
       str = str.slice(p.length).trim();
       break;
     }
   }
 
+  // 2. Strip trailing destination fillers safely ONLY if preceded by a space
   const suffixes = [
     "to my shopping list", "to my cart", "to the cart", "to the list", "to cart", "to list",
     "in my cart", "in cart", "in my list", "in list", "on my list",
     "list mein", "list me", "cart mein", "cart me",
-    "kar do", "daal do", "bhej do", "karo", "daalo", "chahiye",
+    "kar do", "daal do", "bhej do", "karo", "daalo",
     "ऐड करो", "ऐड कर दो", "ऐड", "कर दो"
   ];
 
   for (const s of suffixes) {
-    if (str.toLowerCase().endsWith(" " + s.toLowerCase()) || str.toLowerCase() === s.toLowerCase()) {
+    const sLower = s.toLowerCase();
+    if (str.toLowerCase().endsWith(" " + sLower)) {
       str = str.slice(0, str.length - s.length).trim();
+      break;
     }
   }
 
@@ -149,7 +156,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
     let itemName = seg.trim();
 
     const digitMatch = seg.match(/^(\d+)\s*([a-zA-Z\u0900-\u097F]+)?\s*(?:of|ka|ki|ke)?\s*(.+)$/i);
-    if (digitMatch) {
+    if (digitMatch && digitMatch[3] && digitMatch[3].trim().length > 0) {
       quantity = parseInt(digitMatch[1], 10);
       const possibleUnit = (digitMatch[2] || "").toLowerCase();
       if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(possibleUnit)) {
@@ -180,7 +187,7 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       quantity: quantity || 1,
       unit: unit || "unit"
     };
-  });
+  }).filter(item => item.name && item.name.trim().length > 0 && !["1", "2", "3", "l", "litre", "kg", "unit", "packet"].includes(item.name.trim().toLowerCase()));
 
   const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(aur|daalo|karo|chahiye)\b/i.test(lower);
 
