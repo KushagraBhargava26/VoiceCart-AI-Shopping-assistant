@@ -1,6 +1,6 @@
 import { interpretCommand } from "./ai.service.js";
 import { validateCommand } from "../validators/commandValidator.js";
-import { addShoppingItem, updateShoppingItem, deleteShoppingItem, findShoppingItemByName } from "./shopping.service.js";
+import { addShoppingItem, updateShoppingItem, deleteShoppingItem, findShoppingItemByName, getShoppingList } from "./shopping.service.js";
 import { searchProducts } from "./search.service.js";
 import { getSuggestions } from "./suggestion.service.js";
 
@@ -178,6 +178,11 @@ export async function processVoiceCommand(transcript) {
     case "GET_SUGGESTIONS": {
       const suggestions = await getSuggestions();
       return { action: "GET_SUGGESTIONS", suggestions };
+    }
+
+    case "GET_CART_TOTAL": {
+      const { items, cartTotal, partialTotal, currency } = await getShoppingList();
+      return { action: "GET_CART_TOTAL", cartTotal, partialTotal, currency, itemCount: items.length };
     }
 
     case "CLARIFICATION_REQUIRED":

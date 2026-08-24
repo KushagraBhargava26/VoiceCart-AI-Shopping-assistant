@@ -117,7 +117,38 @@ export async function getShoppingList() {
     orderBy: { createdAt: "asc" },
   });
 
-  return items;
+  // Enrich each item with an estimated price from the Product catalog
+  const enriched = await Promise.all(
+    items.map(async (item) => {
+      const product = await prisma.product.findFirst({
+        where: {
+          name: { equals: item.name, mode: "insensitive" },
+          ...(item.brand ? { brand: { equals: item.brand, mode: "insensitive" } } : {}),
+          available: true,
+        },
+      });
+
+      const unitPrice = product?.price ? Number(product.price) : null;
+      const estimatedPrice = unitPrice !== null ? unitPrice * Number(item.quantity) : null;
+
+      return {
+        ...item,
+        quantity: Number(item.quantity),
+        estimatedPrice,
+        currency: product?.currency || "INR",
+      };
+    })
+  );
+
+  // Cart total — only sum items where price is known
+  const pricedItems = enriched.filter((i) => i.estimatedPrice !== null);
+  const cartTotal = pricedItems.length > 0
+    ? pricedItems.reduce((sum, i) => sum + i.estimatedPrice, 0)
+    : null;
+
+  const partialTotal = pricedItems.length > 0 && pricedItems.length < enriched.length;
+
+  return { items: enriched, cartTotal, partialTotal, currency: "INR" };
 }
 export async function addShoppingItem({ name, quantity, unit, category, brand }) {
   const list = await getDefaultShoppingList();

@@ -230,6 +230,25 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           spokenText,
         };
       }
+      case "GET_CART_TOTAL": {
+        if (result.cartTotal === null) {
+          const lines = [isHi ? "Abhi list mein koi priced item nahi hai." : "No priced items in your cart yet."];
+          const spokenText = isHi ? "Aapki list mein abhi koi priced item nahi hai." : "Your cart has no priced items yet.";
+          return { status: "partial", heading: isHi ? "Bill estimate nahi hua" : "No price estimate", lines, spokenText };
+        }
+        const totalFormatted = `₹${Math.round(result.cartTotal)}`;
+        const note = result.partialTotal ? (isHi ? " (kuch items ki price catalog mein nahi hai)" : " (some items have no catalog price)") : "";
+        const lines = [`💰 ${totalFormatted}${note}`, isHi ? `${result.itemCount} items hain aapki list mein` : `${result.itemCount} item(s) in your list`];
+        const spokenText = isHi
+          ? `Aapka estimated bill ${totalFormatted} hai.`
+          : `Your estimated cart total is ${totalFormatted}.`;
+        return {
+          status: "success",
+          heading: isHi ? "Cart ka estimated total" : "Estimated cart total",
+          lines,
+          spokenText,
+        };
+      }
       case "CLARIFICATION_REQUIRED":
         return {
           status: "partial",

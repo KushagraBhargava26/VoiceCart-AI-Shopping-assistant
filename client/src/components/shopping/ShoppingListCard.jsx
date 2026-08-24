@@ -32,6 +32,8 @@ function ErrorBanner({ message }) {
 
 export default function ShoppingListCard({ refreshKey, onChange }) {
   const [items, setItems] = useState([]);
+  const [cartTotal, setCartTotal] = useState(null);
+  const [partialTotal, setPartialTotal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -43,6 +45,8 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
       const data = await fetchShoppingList();
       const list = data?.items || (Array.isArray(data) ? data : []);
       setItems(list);
+      setCartTotal(data?.cartTotal ?? null);
+      setPartialTotal(data?.partialTotal ?? false);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -108,6 +112,19 @@ export default function ShoppingListCard({ refreshKey, onChange }) {
           {showAddForm ? "Cancel" : "+ Add Item"}
         </button>
       </div>
+
+      {/* Estimated cart total banner */}
+      {cartTotal !== null && items.length > 0 && (
+        <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-lg bg-teal/5 border border-teal-dim/40">
+          <div className="flex items-center gap-1.5 text-[11.5px] text-text-dim">
+            <span>💰</span>
+            <span>{partialTotal ? "Estimated total (partial):" : "Estimated total:"}</span>
+          </div>
+          <span className="text-[13px] font-semibold text-teal">
+            ₹{cartTotal.toFixed(0)}
+          </span>
+        </div>
+      )}
 
       {error && <ErrorBanner message={error} />}
 

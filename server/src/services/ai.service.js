@@ -14,6 +14,7 @@ Supported actions:
 - UPDATE_ITEM
 - SEARCH_PRODUCT
 - GET_SUGGESTIONS
+- GET_CART_TOTAL
 - CLARIFICATION_REQUIRED
 - UNKNOWN
 
@@ -54,6 +55,12 @@ Output: {"action":"SEARCH_PRODUCT","query":"toothpaste","filters":{"brand":"Colg
 Input: "What should I buy?"
 Output: {"action":"GET_SUGGESTIONS"}
 
+Input: "What is my total bill?"
+Output: {"action":"GET_CART_TOTAL"}
+
+Input: "Mera bill kitna hoga?"
+Output: {"action":"GET_CART_TOTAL"}
+
 Input: "Doodh add karo"
 Output: {"action":"ADD_ITEM","items":[{"name":"milk","quantity":1,"unit":"unit"}]}
 
@@ -67,6 +74,11 @@ Now interpret the following user command and respond with ONLY the JSON object.`
  */
 function fallbackInterpret(transcript) {
   const text = (transcript || "").trim().toLowerCase();
+
+  // Cart total
+  if (/bill|total|kitna hoga|how much|cart total|mera total|kharcha|estimate/i.test(text)) {
+    return { action: "GET_CART_TOTAL" };
+  }
 
   // Suggestions
   if (/what should i buy|suggestions|kya khareedu|recommend|sujhav/i.test(text)) {
