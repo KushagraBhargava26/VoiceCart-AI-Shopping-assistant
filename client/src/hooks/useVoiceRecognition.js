@@ -54,7 +54,9 @@ export function useVoiceRecognition(language = 'en-IN') {
     recognitionRef.current = recognition;
 
     return () => {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch (e) {}
     };
   }, [language]);
 
