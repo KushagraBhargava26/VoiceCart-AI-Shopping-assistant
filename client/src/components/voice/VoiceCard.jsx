@@ -6,33 +6,55 @@ import { speakResponse } from "../../utils/speech.js";
 
 const LANGUAGES = [
   { code: "en-IN", label: "English (India)" },
-  { code: "hi-IN", label: "Hindi" },
+  { code: "hi-IN", label: "Hindi (हिंदी)" },
 ];
 
-const EXAMPLE_COMMANDS = [
-  { text: "Add milk to my list", keyword: "milk" },
-  { text: "I need 2 bottles of water", keyword: "water" },
-  { text: "Remove bread", keyword: "bread" },
-  { text: "Find toothpaste under 300", keyword: "toothpaste" },
-];
+const EXAMPLE_COMMANDS = {
+  "en-IN": [
+    { text: "Add milk to my list", keyword: "milk" },
+    { text: "I need 2 bottles of water", keyword: "water" },
+    { text: "Remove bread", keyword: "bread" },
+    { text: "Find toothpaste under 300", keyword: "toothpaste" },
+  ],
+  "hi-IN": [
+    { text: "2 packet dahi add karo", keyword: "curd" },
+    { text: "1 kg chawal list mein daalo", keyword: "rice" },
+    { text: "Bread hata do", keyword: "bread" },
+    { text: "Chai patti search karo", keyword: "tea" },
+  ],
+};
 
 function detectNavigation(transcriptText, result) {
   const t = (transcriptText || "").toLowerCase().trim();
   const q = (result?.query || "").toLowerCase().trim();
 
-  if (/\b(open|show|view|go to|see)\s+(category|categories)\b/i.test(t) || q === "categories" || q === "category") {
+  if (
+    /\b(open|show|view|go to|see|kholo|dikhao)\s+(category|categories|shreni)\b/i.test(t) ||
+    q === "categories" ||
+    q === "category"
+  ) {
     return "categories";
   }
-  if (/\b(open|show|view|go to|see)\s+(history|purchase history|past orders)\b/i.test(t) || q === "history") {
+  if (
+    /\b(open|show|view|go to|see|kholo|dikhao)\s+(history|purchase history|past orders|purani list)\b/i.test(t) ||
+    q === "history"
+  ) {
     return "history";
   }
-  if (/\b(open|show|view|go to|see)\s+(suggestions|smart suggestions|recommendations)\b/i.test(t) || q === "suggestions") {
+  if (
+    /\b(open|show|view|go to|see|kholo|dikhao)\s+(suggestions|smart suggestions|recommendations|sujhav)\b/i.test(t) ||
+    q === "suggestions"
+  ) {
     return "suggestions";
   }
-  if (/\b(open|show|view|go to|see)\s+(shopping list|my list|the list|cart)\b/i.test(t) || q === "shopping list" || q === "list") {
+  if (
+    /\b(open|show|view|go to|see|kholo|dikhao)\s+(shopping list|my list|the list|cart|list)\b/i.test(t) ||
+    q === "shopping list" ||
+    q === "list"
+  ) {
     return "shopping-list";
   }
-  if (/\b(go|open|show)\s+(home|dashboard)\b/i.test(t) || q === "home") {
+  if (/\b(go|open|show|kholo)\s+(home|dashboard|ghar)\b/i.test(t) || q === "home") {
     return "home";
   }
   return null;
@@ -45,6 +67,8 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  const isHindi = language === "hi-IN";
 
   useEffect(() => {
     if (!transcript) return;
@@ -60,10 +84,10 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         if (navTarget) {
           onNavigate?.(navTarget);
           const label = navTarget === "shopping-list" ? "Shopping List" : navTarget.charAt(0).toUpperCase() + navTarget.slice(1);
-          const msg = `Opened ${label}`;
+          const msg = isHindi ? `${label} khol diya gaya hai.` : `Opened ${label}.`;
           setFeedback({
             status: "success",
-            heading: "Navigating",
+            heading: isHindi ? "Navigation safal raha" : "Navigating",
             lines: [msg],
           });
           if (audioFeedback) {
@@ -72,7 +96,7 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           return;
         }
 
-        const { status, heading, lines, spokenText } = buildFeedback(result);
+        const { status, heading, lines, spokenText } = buildFeedback(result, language);
         setFeedback({ status, heading, lines });
 
         // Play audio spoken feedback
@@ -88,9 +112,14 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           onSearchCommand?.(result.query);
         }
       } catch (err) {
-        setFeedback({ status: "error", heading: "Command failed", lines: [err.message] });
+        const errMsg = isHindi ? "Maaf kijiye, command execute nahi ho paya." : err.message;
+        setFeedback({
+          status: "error",
+          heading: isHindi ? "Command fail ho gaya" : "Command failed",
+          lines: [errMsg],
+        });
         if (audioFeedback) {
-          speakResponse("Sorry, the command could not be processed.", language);
+          speakResponse(isHindi ? "Maaf kijiye, command execute nahi ho paya." : "Sorry, the command could not be processed.", language);
         }
       } finally {
         setProcessing(false);
@@ -99,60 +128,91 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
     }
 
     processCommand();
-  }, [transcript]);
+  }, [transcript, language, audioFeedback]);
 
-  function buildFeedback(result) {
+  function buildFeedback(result, lang) {
+    const isHi = lang === "hi-IN";
+
     switch (result.action) {
       case "ADD_ITEM": {
         const items = result.items || [];
-        const lines = items.map((i) => `${getItemIcon(i.name)} Added ${i.quantity} ${i.unit} of ${i.name}`);
-        const spokenText =
-          items.length === 1
-            ? `Added ${items[0].quantity} ${items[0].unit} of ${items[0].name} to your shopping list.`
-            : `Added ${items.map((i) => `${i.quantity} ${i.unit} of ${i.name}`).join(" and ")} to your shopping list.`;
+        const lines = items.map((i) =>
+          isHi
+            ? `${getItemIcon(i.name)} ${i.name} (${i.quantity} ${i.unit}) list mein add ho gaya`
+            : `${getItemIcon(i.name)} Added ${i.quantity} ${i.unit} of ${i.name}`
+        );
+
+        const spokenText = isHi
+          ? items.length === 1
+            ? `Aapki shopping list mein ${items[0].quantity} ${items[0].unit} ${items[0].name} add kar diya gaya hai.`
+            : `Aapki shopping list mein ${items.map((i) => `${i.quantity} ${i.unit} ${i.name}`).join(" aur ")} add kar diya gaya hai.`
+          : items.length === 1
+          ? `Added ${items[0].quantity} ${items[0].unit} of ${items[0].name} to your shopping list.`
+          : `Added ${items.map((i) => `${i.quantity} ${i.unit} of ${i.name}`).join(" and ")} to your shopping list.`;
+
         return {
           status: "success",
-          heading: "Command executed successfully",
+          heading: isHi ? "Command safal raha" : "Command executed successfully",
           lines,
           spokenText,
         };
       }
-      case "REMOVE_ITEM":
-      case "UPDATE_ITEM":
+      case "REMOVE_ITEM": {
+        const lines = [isHi ? "Item shopping list se hata diya gaya hai." : result.message];
+        const spokenText = isHi ? "Item aapki shopping list se hata diya gaya hai." : result.message;
         return {
           status: "success",
-          heading: "Command executed successfully",
-          lines: [result.message],
-          spokenText: result.message,
+          heading: isHi ? "Command safal raha" : "Command executed successfully",
+          lines,
+          spokenText,
         };
-      case "SEARCH_PRODUCT":
+      }
+      case "UPDATE_ITEM": {
+        const lines = [isHi ? "Item ki quantity update ho gayi hai." : result.message];
+        const spokenText = isHi ? "Quantity update kar di gayi hai." : result.message;
         return {
           status: "success",
-          heading: "Command executed successfully",
-          lines: [`Found ${result.results.length} result(s) for "${result.query}"`],
-          spokenText: `Found ${result.results.length} products for ${result.query}.`,
+          heading: isHi ? "Command safal raha" : "Command executed successfully",
+          lines,
+          spokenText,
         };
-      case "GET_SUGGESTIONS":
+      }
+      case "SEARCH_PRODUCT": {
+        const count = result.results?.length || 0;
+        const lines = [isHi ? `"${result.query}" ke liye ${count} results mile` : `Found ${count} result(s) for "${result.query}"`];
+        const spokenText = isHi ? `${result.query} ke liye ${count} products mile hain.` : `Found ${count} products for ${result.query}.`;
         return {
           status: "success",
-          heading: "Command executed successfully",
-          lines: [`Here are ${result.suggestions.length} suggestion(s) for you`],
-          spokenText: `Here are ${result.suggestions.length} suggestions for your shopping list.`,
+          heading: isHi ? "Search pura hua" : "Command executed successfully",
+          lines,
+          spokenText,
         };
+      }
+      case "GET_SUGGESTIONS": {
+        const count = result.suggestions?.length || 0;
+        const lines = [isHi ? `Aapke liye ${count} smart suggestions hain` : `Here are ${count} suggestion(s) for you`];
+        const spokenText = isHi ? `Aapke liye ${count} suggestions taiyaar hain.` : `Here are ${count} suggestions for your shopping list.`;
+        return {
+          status: "success",
+          heading: isHi ? "Smart suggestions taiyaar hain" : "Command executed successfully",
+          lines,
+          spokenText,
+        };
+      }
       case "CLARIFICATION_REQUIRED":
         return {
           status: "partial",
-          heading: "Could you clarify?",
+          heading: isHi ? "Thoda saaf batayein" : "Could you clarify?",
           lines: [result.message],
-          spokenText: result.message,
+          spokenText: isHi ? "Kripya thoda saaf batayein, aapko kaunsa item chahiye?" : result.message,
         };
       case "UNKNOWN":
       default:
         return {
           status: "partial",
-          heading: "Didn't understand that",
-          lines: [result.message || "Sorry, I didn't understand that. Try rephrasing your command."],
-          spokenText: "Sorry, I did not understand that command. Please try again.",
+          heading: isHi ? "Samajh nahi aaya" : "Didn't understand that",
+          lines: [isHi ? "Command samajh nahi aayi. Kripya dobara saaf aawaz mein bolein." : result.message || "Sorry, I didn't understand that. Try rephrasing your command."],
+          spokenText: isHi ? "Maaf kijiye, samajh nahi aaya. Kripya dobara bolein." : "Sorry, I did not understand that command. Please try again.",
         };
     }
   }
@@ -189,6 +249,8 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
     );
   }
 
+  const examples = EXAMPLE_COMMANDS[language] || EXAMPLE_COMMANDS["en-IN"];
+
   return (
     <div className="bg-panel border border-border-soft rounded-xl p-5 text-center">
       <div className="flex items-center justify-center gap-2 mb-5">
@@ -214,7 +276,7 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           }`}
           title={audioFeedback ? "Voice audio response enabled" : "Voice audio response muted"}>
           <span>{audioFeedback ? "🔊" : "🔇"}</span>
-          <span>{audioFeedback ? "Voice on" : "Muted"}</span>
+          <span>{audioFeedback ? (isHindi ? "Aawaz On" : "Voice on") : (isHindi ? "Mute" : "Muted")}</span>
         </button>
       </div>
 
@@ -230,15 +292,15 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
       </button>
 
       <div className="mt-4">
-        {isListening && <p className="text-[15px] font-medium text-teal animate-pulse">I'm listening...</p>}
+        {isListening && <p className="text-[15px] font-medium text-teal animate-pulse">{isHindi ? "Main sun raha hoon..." : "I'm listening..."}</p>}
         {processing && (
           <div className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 rounded-full border-2 border-purple border-t-transparent animate-spin" />
-            <p className="text-[15px] font-medium text-purple">Processing command...</p>
+            <p className="text-[15px] font-medium text-purple">{isHindi ? "Process ho raha hai..." : "Processing command..."}</p>
           </div>
         )}
-        {!isListening && !processing && <p className="text-[15px] font-medium">Tap the mic to speak</p>}
-        {!isListening && !processing && <p className="text-[11.5px] text-text-faint mt-1">Try saying something like</p>}
+        {!isListening && !processing && <p className="text-[15px] font-medium">{isHindi ? "Bolne ke liye mic dabayein" : "Tap the mic to speak"}</p>}
+        {!isListening && !processing && <p className="text-[11.5px] text-text-faint mt-1">{isHindi ? "Aap aise bol sakte hain" : "Try saying something like"}</p>}
       </div>
 
       {recognitionError && <p className="text-red-400 text-[12px] mt-3">{recognitionError}</p>}
@@ -261,7 +323,7 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
 
       {!isListening && !processing && !feedback && (
         <div className="flex flex-wrap gap-2 justify-center mt-4">
-          {EXAMPLE_COMMANDS.map((cmd) => (
+          {examples.map((cmd) => (
             <span key={cmd.text} className="text-[11px] bg-panel-2 border border-border-soft text-text-dim px-3 py-1 rounded-full">
               {getItemIcon(cmd.keyword)} {cmd.text}
             </span>
