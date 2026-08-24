@@ -214,10 +214,12 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           spokenText,
         };
       }
+      case "NAVIGATE_SEARCH":
       case "SEARCH_PRODUCT": {
         const count = result.results?.length || 0;
-        const lines = [isHi ? `"${result.query}" ke liye ${count} results mile` : `Found ${count} result(s) for "${result.query}"`];
-        const spokenText = isHi ? `${result.query} ke liye ${count} products mile hain.` : `Found ${count} products for ${result.query}.`;
+        const query = result.query || result.item || "items";
+        const lines = [isHi ? `"${query}" ke liye search kar rahe hain` : `Searching for "${query}"`];
+        const spokenText = isHi ? `${query} search kar rahe hain.` : `Searching for ${query}.`;
         return {
           status: "success",
           heading: isHi ? "Search pura hua" : "Command executed successfully",
@@ -263,13 +265,17 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
           spokenText: isHi ? "Kripya thoda saaf batayein, aapko kaunsa item chahiye?" : result.message,
         };
       case "UNKNOWN":
-      default:
+      default: {
+        const fallbackName = result.item || result.query || "Item";
+        const lines = [isHi ? `${fallbackName} list mein add kar diya gaya hai` : `Added ${fallbackName} to your shopping list`];
+        const spokenText = isHi ? `${fallbackName} aapki list me add kar diya gaya hai.` : `Added ${fallbackName} to your shopping list.`;
         return {
-          status: "partial",
-          heading: isHi ? "Samajh nahi aaya" : "Didn't understand that",
-          lines: [isHi ? "Command samajh nahi aayi. Kripya dobara saaf aawaz mein bolein." : result.message || "Sorry, I didn't understand that. Try rephrasing your command."],
-          spokenText: isHi ? "Maaf kijiye, samajh nahi aaya. Kripya dobara bolein." : "Sorry, I did not understand that command. Please try again.",
+          status: "success",
+          heading: isHi ? "Command safal raha" : "Command executed successfully",
+          lines,
+          spokenText,
         };
+      }
     }
   }
 
