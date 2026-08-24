@@ -18,9 +18,9 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   const lower = transcript.toLowerCase();
 
   // 1. Check for REMOVE action (Hindi: hata, nikal, drop, remove)
-  if (/\b(remove|delete|hata|nikal|drop|mita)\b/i.test(lower)) {
+  if (/\b(remove|delete|hata|nikal|drop|mita|hatao)\b/i.test(lower)) {
     const cleanName = transcript
-      .replace(/\b(remove|delete|hata|nikal|drop|mita|from my list|list se|karo|do|kar do|please)\b/gi, "")
+      .replace(/\b(remove|delete|hata|nikal|drop|mita|hatao|from my list|list se|karo|do|kar do|please)\b/gi, "")
       .trim() || "Item";
 
     const isHi = language === "hi-IN" || /[^\x00-\x7F]/.test(transcript) || /\b(hata|nikal|karo)\b/i.test(lower);
@@ -47,34 +47,36 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
   // 3. Multi-item ADD action (split by "and", "aur", "tatha", "evam", "plus", ",")
   const cleanBody = transcript
-    .replace(/\b(add|put|buy|need|want|chahiye|daal|daalo|karo|bhejo|rakho|laao|lano|le aao|kar do|daal do|bhej do|please|to my list|list mein|list me)\b/gi, "")
+    .replace(/(?:add|put|buy|need|want|chahiye|daal|daalo|karo|bhejo|rakho|laao|lano|le aao|kar do|daal do|bhej do|ऐड|ऐड करो|ऐड कर दो|डालो|डाल दो|चाहिए|कीजिये|करो|do|please|to my list|list mein|list me)/gi, "")
     .trim();
 
   // Split into segments by conjunctions
-  const segments = cleanBody.split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
+  const segments = (cleanBody || transcript).split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
 
-  const parsedItems = (segments.length ? segments : [cleanBody]).map((seg) => {
+  const parsedItems = (segments.length ? segments : [cleanBody || transcript]).map((seg) => {
     let quantity = 1;
     let unit = "unit";
-    let itemName = seg;
+    let itemName = seg.trim();
 
-    // Match digit quantity e.g. "2 l paani" or "1 kg chawal" or "2 packet dahi"
-    const digitMatch = seg.match(/^(\d+)\s*([a-z]+)?\s*(?:of\s+)?(.+)$/i);
+    // Match leading digits e.g. "2 l paani" or "2 litre dudh" or "2 लीटर दूध"
+    const digitMatch = seg.match(/^(\d+)\s*([a-zA-Z\u0900-\u097F]+)?\s*(?:of|ka|ki|ke)?\s*(.+)$/i);
     if (digitMatch) {
       quantity = parseInt(digitMatch[1], 10);
       const possibleUnit = (digitMatch[2] || "").toLowerCase();
-      if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan"].includes(possibleUnit)) {
+      if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(possibleUnit)) {
         unit = possibleUnit;
+        itemName = digitMatch[3].trim();
+      } else {
+        itemName = `${digitMatch[2] || ""} ${digitMatch[3] || ""}`.trim();
       }
-      itemName = digitMatch[3].trim();
     } else {
-      // Match word quantity e.g. "do litre paani" or "ek kg chawal"
+      // Match word quantity e.g. "two litres of milk" or "ek kg chawal"
       const words = seg.split(/\s+/);
       const firstWord = (words[0] || "").toLowerCase();
       if (NUMBER_WORDS[firstWord]) {
         quantity = NUMBER_WORDS[firstWord];
         const secondWord = (words[1] || "").toLowerCase();
-        if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan"].includes(secondWord)) {
+        if (["l", "liter", "litres", "litre", "kg", "kilo", "kilogram", "packet", "packets", "botal", "bottle", "bottles", "pcs", "piece", "pieces", "box", "dozen", "dazan", "लीटर", "ली", "किलo", "किग्रा", "पैकेट", "बोतल", "पीस"].includes(secondWord)) {
           unit = secondWord;
           itemName = words.slice(2).join(" ");
         } else {
@@ -83,10 +85,31 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       }
     }
 
-    itemName = itemName.replace(/^(of|ka|ki|ke)\s+/i, "").trim() || seg;
+    // Clean up residual verbs and prepositions from itemName
+    itemName = itemName
+      .replace(/^(of|ka|ki|ke)\s+/i, "")
+      .replace(/(?:kar do|daal do|bhej do|karo|daalo|add|ऐड|ऐड करो|ऐड कर दो|कर दो)$/gi, "")
+      .trim() || seg;
+
+    // Standardize Hindi food names to standard catalog names
+    const cleanLower = itemName.toLowerCase();
+    let finalName = itemName;
+    if (cleanLower.includes("dudh") || cleanLower.includes("doodh") || cleanLower.includes("दूध") || cleanLower === "milk") {
+      finalName = "Amul Taaza Fresh Milk 1L";
+    } else if (cleanLower.includes("paani") || cleanLower.includes("pani") || cleanLower.includes("पानी") || cleanLower === "water") {
+      finalName = "Bisleri Mineral Water 1L";
+    } else if (cleanLower.includes("bread") || cleanLower.includes("ब्रेड")) {
+      finalName = "Britannia Brown Bread 400g";
+    } else if (cleanLower.includes("dahi") || cleanLower.includes("दही") || cleanLower.includes("curd")) {
+      finalName = "Mother Dairy Classic Dahi 400g";
+    } else if (cleanLower.includes("chawal") || cleanLower.includes("चावल") || cleanLower.includes("rice")) {
+      finalName = "Basmati Rice 1kg";
+    } else if (cleanLower.includes("anda") || cleanLower.includes("ande") || cleanLower.includes("अंडा") || cleanLower === "egg" || cleanLower === "eggs") {
+      finalName = "Fresh Farm Eggs (Pack of 6)";
+    }
 
     return {
-      name: itemName,
+      name: finalName,
       quantity: quantity || 1,
       unit: unit || "unit"
     };
