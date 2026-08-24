@@ -64,7 +64,7 @@ function detectNavigation(transcriptText, result) {
 export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavigate }) {
   const [language, setLanguage] = useState("en-IN");
   const [audioFeedback, setAudioFeedback] = useState(true);
-  const { isSupported, isListening, transcript, error: recognitionError, startListening, resetTranscript } = useVoiceRecognition(language);
+  const { isSupported, isListening, transcript, interimTranscript, error: recognitionError, startListening, resetTranscript } = useVoiceRecognition(language);
 
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -348,7 +348,16 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
       </button>
 
       <div className="mt-4">
-        {isListening && <p className="text-[15px] font-medium text-teal animate-pulse">{isHindi ? "Main sun raha hoon..." : "I'm listening..."}</p>}
+        {isListening && (
+          <div className="space-y-1.5">
+            <p className="text-[15px] font-medium text-teal animate-pulse">{isHindi ? "Main sun raha hoon..." : "I'm listening..."}</p>
+            {(interimTranscript || transcript) && (
+              <p className="text-xs font-semibold text-text-main bg-panel-2 px-3 py-1.5 rounded-lg border border-teal/30 inline-block max-w-full truncate">
+                "{interimTranscript || transcript}"
+              </p>
+            )}
+          </div>
+        )}
         {processing && (
           <div className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 rounded-full border-2 border-purple border-t-transparent animate-spin" />

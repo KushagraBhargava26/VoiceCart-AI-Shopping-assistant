@@ -2,11 +2,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * Wraps the browser's built-in SpeechRecognition API.
- * Returns listening state, the latest transcript, any error, and start/stop controls.
+ * Returns listening state, the final transcript, interim live text, any error, and start/stop controls.
  */
 export function useVoiceRecognition(language = 'en-IN') {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState(null);
   const [isSupported, setIsSupported] = useState(true);
 
@@ -30,24 +31,30 @@ export function useVoiceRecognition(language = 'en-IN') {
     recognition.onstart = () => {
       setIsListening(true);
       setError(null);
+      setTranscript('');
+      setInterimTranscript('');
     };
 
     recognition.onresult = (event) => {
       let finalTranscript = '';
-      let interimTranscript = '';
+      let liveText = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const item = event.results[i];
         if (item.isFinal) {
           finalTranscript += item[0].transcript;
         } else {
-          interimTranscript += item[0].transcript;
+          liveText += item[0].transcript;
         }
       }
 
-      const text = finalTranscript || interimTranscript;
-      if (text) {
-        setTranscript(text);
+      if (liveText) {
+        setInterimTranscript(liveText);
+      }
+
+      if (finalTranscript) {
+        setTranscript(finalTranscript.trim());
+        setInterimTranscript('');
       }
     };
 
@@ -78,6 +85,7 @@ export function useVoiceRecognition(language = 'en-IN') {
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
     setTranscript('');
+    setInterimTranscript('');
     setError(null);
     try {
       recognitionRef.current.start();
@@ -94,12 +102,14 @@ export function useVoiceRecognition(language = 'en-IN') {
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
+    setInterimTranscript('');
   }, []);
 
   return {
     isSupported,
     isListening,
     transcript,
+    interimTranscript,
     error,
     startListening,
     stopListening,
