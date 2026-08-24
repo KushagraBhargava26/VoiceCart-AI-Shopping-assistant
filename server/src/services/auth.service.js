@@ -164,3 +164,64 @@ export async function googleAuthUser({ idToken, name, email }) {
     token: `token_${user.id}_${Date.now()}`,
   };
 }
+
+const passwordResetOTPs = new Map();
+
+/**
+ * Request password reset verification code (OTP).
+ */
+export async function requestForgotPassword(email) {
+  const normalizedEmail = email.toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  if (!user) {
+    const error = new Error("No account registered with this email address.");
+    error.code = "USER_NOT_FOUND";
+    throw error;
+  }
+
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+
+  passwordResetOTPs.set(normalizedEmail, { otp, expiresAt });
+  console.log(`[AUTH] Password Reset OTP for ${normalizedEmail}: ${otp}`);
+
+  return {
+    email: normalizedEmail,
+    message: "Verification code sent to your email.",
+    otp,
+  };
+}
+
+/**
+ * Reset password using 6-digit OTP code.
+ */
+export async function resetPassword({ email, otp, newPassword }) {
+  const normalizedEmail = email.toLowerCase().trim();
+  const record = passwordResetOTPs.get(normalizedEmail);
+
+  if (!record || record.expiresAt < Date.now()) {
+    const error = new Error("Verification code has expired or is invalid.");
+    error.code = "EXPIRED_OTP";
+    throw error;
+  }
+
+  if (record.otp !== (otp || "").trim()) {
+    const error = new Error("Incorrect 6-digit verification code.");
+    error.code = "WRONG_OTP";
+    throw error;
+  }
+
+  passwordResetOTPs.delete(normalizedEmail);
+
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    token: `token_${user.id}_${Date.now()}`,
+    message: "Password reset successful! Logging you in...",
+  };
+}

@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import { loginUser, signupUser, googleAuthUser } from "../../services/auth.service.js";
+import {
+  loginUser,
+  signupUser,
+  googleAuthUser,
+  requestForgotPassword,
+  resetPassword,
+} from "../../services/auth.service.js";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "718294628194-voicecart.apps.googleusercontent.com";
 
@@ -11,6 +17,16 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Forgot Password State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState(null);
+  const [forgotSuccess, setForgotSuccess] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -69,6 +85,56 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
       setError("Google sign-in failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Forgot Password Handlers
+  async function handleRequestOTP(e) {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotError("Please enter your registered email address.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotError(null);
+    setForgotSuccess(null);
+
+    try {
+      const res = await requestForgotPassword(forgotEmail);
+      setForgotSuccess(
+        `Verification code sent to ${forgotEmail}! ${res.otp ? `(Demo OTP Code: ${res.otp})` : ""}`
+      );
+      setForgotStep(2);
+    } catch (err) {
+      setForgotError(err.message || "Failed to send reset code. Please check email.");
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  async function handleResetSubmit(e) {
+    e.preventDefault();
+    if (!forgotOtp.trim() || !forgotNewPassword.trim()) {
+      setForgotError("Please enter the OTP code and new password.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotError(null);
+
+    try {
+      const user = await resetPassword({
+        email: forgotEmail,
+        otp: forgotOtp,
+        newPassword: forgotNewPassword,
+      });
+      setShowForgotModal(false);
+      onLoginSuccess?.(user);
+    } catch (err) {
+      setForgotError(err.message || "Password reset failed. Check OTP code.");
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -203,9 +269,18 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-[11.5px] font-medium text-text-dim">Password</label>
                   {!isSignUp && (
-                    <a href="#" className="text-[10px] text-teal hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotEmail(email);
+                        setForgotStep(1);
+                        setForgotError(null);
+                        setForgotSuccess(null);
+                        setShowForgotModal(true);
+                      }}
+                      className="text-[10px] text-teal hover:underline font-medium">
                       Forgot password?
-                    </a>
+                    </button>
                   )}
                 </div>
                 <input
@@ -252,7 +327,7 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
                 <div className="relative flex items-center justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
-                    onError={() => setError("Google OAuth error: Please check Authorized Javascript Origins in Google Cloud Console.")}
+                    onError={() => setError("Google OAuth error: Check Authorized Origins in Google Cloud Console.")}
                     shape="pill"
                     size="medium"
                     theme="filled_black"
@@ -287,6 +362,110 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
           </div>
         </div>
       </main>
+
+      {/* FORGOT PASSWORD MODAL */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-panel border border-border-soft rounded-2xl w-full max-w-md p-6 relative shadow-2xl space-y-4">
+            <button
+              onClick={() => setShowForgotModal(false)}
+              className="absolute top-4 right-4 text-text-faint hover:text-text-main text-lg transition-colors">
+              ✕
+            </button>
+
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-xl bg-teal/10 border border-teal/30 flex items-center justify-center text-lg mb-2 text-teal">
+                🔑
+              </div>
+              <h3 className="text-lg font-bold text-text-main">Reset Your Password</h3>
+              <p className="text-xs text-text-dim mt-0.5">
+                {forgotStep === 1
+                  ? "Enter your registered email to receive a 6-digit verification code"
+                  : "Enter the verification code and set a new password"}
+              </p>
+            </div>
+
+            {forgotError && (
+              <div className="p-2.5 rounded-xl border border-red-400/30 bg-red-400/5 text-xs text-red-400">
+                ✕ {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div className="p-2.5 rounded-xl border border-teal/40 bg-teal/10 text-xs text-teal">
+                ✓ {forgotSuccess}
+              </div>
+            )}
+
+            {forgotStep === 1 ? (
+              <form onSubmit={handleRequestOTP} className="space-y-3.5 pt-1">
+                <div>
+                  <label className="block text-[11.5px] font-medium text-text-dim mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="kushagra@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-panel-2 border border-border-soft text-text-main text-xs focus:outline-none focus:border-teal-dim"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full py-2.5 rounded-xl bg-teal text-bg font-semibold text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {forgotLoading ? <span className="w-4 h-4 rounded-full border-2 border-bg border-t-transparent animate-spin" /> : null}
+                  <span>Send Verification Code</span>
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="space-y-3 pt-1">
+                <div>
+                  <label className="block text-[11.5px] font-medium text-text-dim mb-1">6-Digit Verification Code (OTP)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 482910"
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-panel-2 border border-border-soft text-text-main text-xs focus:outline-none focus:border-teal-dim font-mono tracking-widest text-center"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11.5px] font-medium text-text-dim mb-1">New Password</label>
+                  <input
+                    type="password"
+                    placeholder="At least 6 characters"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-panel-2 border border-border-soft text-text-main text-xs focus:outline-none focus:border-teal-dim"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full py-2.5 rounded-xl bg-teal text-bg font-semibold text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {forgotLoading ? <span className="w-4 h-4 rounded-full border-2 border-bg border-t-transparent animate-spin" /> : null}
+                  <span>Reset Password & Sign In</span>
+                </button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep(1)}
+                    className="text-[11px] text-text-faint hover:text-text-dim underline">
+                    ← Change Email
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="max-w-7xl w-full mx-auto text-center text-[11px] text-text-faint py-2 z-10">

@@ -40,3 +40,13 @@ export async function googleAuthUser({ idToken, name, email }) {
 export function logoutUser() {
   setStoredUser(null);
 }
+
+export async function requestForgotPassword(email) {
+  return post("/auth/forgot-password", { email });
+}
+
+export async function resetPassword({ email, otp, newPassword }) {
+  const user = await post("/auth/reset-password", { email, otp, newPassword });
+  setStoredUser(user);
+  return user;
+}

@@ -1,4 +1,11 @@
-import { loginUser, signupUser, googleAuthUser, getOrCreateDefaultUser } from "../services/auth.service.js";
+import {
+  loginUser,
+  signupUser,
+  googleAuthUser,
+  getOrCreateDefaultUser,
+  requestForgotPassword,
+  resetPassword,
+} from "../services/auth.service.js";
 
 function sendError(res, status, code, message) {
   return res.status(status).json({
@@ -57,6 +64,40 @@ export async function handleGoogleAuth(req, res) {
   } catch (err) {
     console.error("Error with Google auth:", err);
     sendError(res, 500, "AUTH_ERROR", err.message || "Google authentication failed. Please try again.");
+  }
+}
+
+export async function handleForgotPassword(req, res) {
+  const { email } = req.body;
+  if (!email || !email.trim()) {
+    return sendError(res, 422, "VALIDATION_ERROR", "Email address is required.");
+  }
+
+  try {
+    const result = await requestForgotPassword(email);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || "FORGOT_PASSWORD_ERROR", err.message || "Could not process request.");
+  }
+}
+
+export async function handleResetPassword(req, res) {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return sendError(res, 422, "VALIDATION_ERROR", "Email, OTP code, and new password are required.");
+  }
+
+  try {
+    const result = await resetPassword({ email, otp, newPassword });
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    sendError(res, 400, err.code || "RESET_PASSWORD_ERROR", err.message || "Password reset failed.");
   }
 }
 
