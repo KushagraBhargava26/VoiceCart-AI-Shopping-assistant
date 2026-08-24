@@ -2,6 +2,25 @@ import { get, post, patch, del } from './api.js';
 
 const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
 
+const PRICE_LOOKUP = {
+  milk: 68,
+  bread: 45,
+  apples: 140,
+  water: 20,
+  eggs: 55,
+  butter: 58,
+  paneer: 95,
+  dahi: 40,
+  chips: 20,
+  tea: 240,
+  coffee: 175,
+  oil: 155,
+  salt: 28,
+  toothpaste: 110,
+  soap: 48,
+  shampoo: 165
+};
+
 function getLocalItems() {
   try {
     const data = localStorage.getItem(LOCAL_ITEMS_KEY);
@@ -25,13 +44,19 @@ export async function fetchShoppingList() {
       const combinedMap = new Map();
       [...res.items, ...local].forEach(item => combinedMap.set(item.id || item.name, item));
       const combined = Array.from(combinedMap.values());
-      const cartTotal = combined.reduce((sum, item) => sum + ((item.price || 60) * (item.quantity || 1)), 0);
+      const cartTotal = combined.reduce((sum, item) => {
+        const p = item.price ?? item.estimatedPrice ?? PRICE_LOOKUP[(item.name || "").toLowerCase()] ?? 50;
+        return sum + (Number(p) * Number(item.quantity || 1));
+      }, 0);
       return { items: combined, cartTotal, currency: "INR" };
     }
     throw new Error("No server items");
   } catch (err) {
     const local = getLocalItems();
-    const cartTotal = local.reduce((sum, item) => sum + ((item.price || 60) * (item.quantity || 1)), 0);
+    const cartTotal = local.reduce((sum, item) => {
+      const p = item.price ?? item.estimatedPrice ?? PRICE_LOOKUP[(item.name || "").toLowerCase()] ?? 50;
+      return sum + (Number(p) * Number(item.quantity || 1));
+    }, 0);
     return {
       items: local,
       cartTotal,
@@ -41,6 +66,18 @@ export async function fetchShoppingList() {
 }
 
 export async function addItem({ name, quantity, unit, category, brand, price }) {
+  const cleanName = (name || "").toLowerCase();
+  let matchedPrice = price;
+  if (!matchedPrice) {
+    for (const [key, val] of Object.entries(PRICE_LOOKUP)) {
+      if (cleanName.includes(key)) {
+        matchedPrice = val;
+        break;
+      }
+    }
+  }
+  const resolvedPrice = matchedPrice || 45;
+
   const newItem = {
     id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
     name,
@@ -48,7 +85,8 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
     unit: unit || 'unit',
     category: category || 'General',
     brand: brand || '',
-    price: price || 60,
+    price: resolvedPrice,
+    estimatedPrice: resolvedPrice,
     status: 'PENDING'
   };
 
@@ -62,7 +100,7 @@ export async function addItem({ name, quantity, unit, category, brand, price }) 
   saveLocalItems(local);
 
   try {
-    await post('/shopping-list/items', { name, quantity, unit, category, brand, price });
+    await post('/shopping-list/items', { name, quantity, unit, category, brand, price: resolvedPrice });
   } catch (err) {
     console.warn("Server sync pending, item saved locally:", err.message);
   }
