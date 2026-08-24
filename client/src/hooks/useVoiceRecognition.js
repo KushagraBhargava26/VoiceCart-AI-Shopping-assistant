@@ -23,7 +23,8 @@ export function useVoiceRecognition(language = 'en-IN') {
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
     recognition.lang = language;
 
     recognition.onstart = () => {
@@ -32,17 +33,31 @@ export function useVoiceRecognition(language = 'en-IN') {
     };
 
     recognition.onresult = (event) => {
-      const result = event.results[0][0].transcript;
-      setTranscript(result);
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const item = event.results[i];
+        if (item.isFinal) {
+          finalTranscript += item[0].transcript;
+        } else {
+          interimTranscript += item[0].transcript;
+        }
+      }
+
+      const text = finalTranscript || interimTranscript;
+      if (text) {
+        setTranscript(text);
+      }
     };
 
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') {
-        setError("Sorry, I couldn't hear that. Please try again.");
+        setError("Couldn't hear clearly. Please speak near the mic and try again.");
       } else if (event.error === 'not-allowed') {
-        setError('Microphone access was denied. Please allow microphone access.');
-      } else {
-        setError('Something went wrong with voice recognition. Please try again.');
+        setError('Microphone access was denied. Please allow microphone permissions in browser.');
+      } else if (event.error !== 'aborted') {
+        setError('Voice recognition error. Please try again.');
       }
       setIsListening(false);
     };
@@ -72,7 +87,9 @@ export function useVoiceRecognition(language = 'en-IN') {
   }, []);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    try {
+      recognitionRef.current?.stop();
+    } catch (e) {}
   }, []);
 
   const resetTranscript = useCallback(() => {
