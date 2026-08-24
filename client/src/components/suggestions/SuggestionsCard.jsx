@@ -47,7 +47,11 @@ export default function SuggestionsCard({ refreshKey, onItemAdded }) {
         const suggList = Array.isArray(suggData) ? suggData : (suggData?.suggestions || []);
         const currentItems = listData?.items || (Array.isArray(listData) ? listData : []);
         setSuggestions(suggList);
-        setCurrentListNames(new Set(currentItems.map((i) => (i?.name ? String(i.name) : String(i || "")).toLowerCase())));
+        setCurrentListNames(
+          new Set(
+            currentItems.map((i) => (i?.name ? String(i.name) : String(i || "")).toLowerCase())
+          )
+        );
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -60,9 +64,10 @@ export default function SuggestionsCard({ refreshKey, onItemAdded }) {
   }, [refreshKey]);
 
   async function handleAdd(suggestion) {
+    const itemName = (suggestion?.name || suggestion?.item || "Suggested Item").toString();
     try {
-      await addItem({ name: suggestion.item, quantity: 1, unit: "unit" });
-      setCurrentListNames((prev) => new Set(prev).add(suggestion.item.toLowerCase()));
+      await addItem({ name: itemName, quantity: 1, unit: "unit" });
+      setCurrentListNames((prev) => new Set(prev).add(itemName.toLowerCase()));
       onItemAdded?.();
     } catch (err) {
       setError(err.message);
@@ -93,30 +98,34 @@ export default function SuggestionsCard({ refreshKey, onItemAdded }) {
 
       {!loading &&
         suggestions.map((s, idx) => {
-          const isAdded = currentListNames.has(s.item.toLowerCase());
+          const itemName = (s?.name || s?.item || "Suggested Item").toString();
+          const isAdded = currentListNames.has(itemName.toLowerCase());
+          const reason = s?.reason || s?.message || "Recommended for your cart";
+
           return (
             <div
-              key={`${s.type}-${s.item}-${idx}`}
+              key={`${s?.type || idx}-${itemName}-${idx}`}
               className="flex items-center justify-between py-2.5 border-b border-border-soft last:border-none text-[13px]">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <span className="text-lg">{getItemIcon(s.item)}</span>
-                  <span className="absolute -bottom-1 -right-1 text-[9px] leading-none">{TYPE_ICONS[s.type] || "✨"}</span>
+                  <span className="text-lg">{getItemIcon(itemName, s?.category)}</span>
+                  <span className="absolute -bottom-1 -right-1 text-[9px] leading-none">{TYPE_ICONS[s?.type] || "✨"}</span>
                 </div>
                 <div>
-                  <div className="font-medium capitalize">{s.item}</div>
-                  <div className="text-[11px] text-text-dim">{s.message}</div>
+                  <div className="font-medium capitalize">{itemName}</div>
+                  <div className="text-[11px] text-text-dim">{reason}</div>
                 </div>
               </div>
+
               <button
                 onClick={() => handleAdd(s)}
                 disabled={isAdded}
-                className={`text-[11px] px-3 py-1 rounded-md border transition-colors ${
+                className={`text-[12px] font-medium px-2.5 py-1 rounded transition-opacity ${
                   isAdded
-                    ? "border-border-soft text-text-faint cursor-default"
-                    : "border-purple/40 text-purple hover:bg-purple/10"
+                    ? "bg-panel-2 text-text-faint cursor-default"
+                    : "bg-teal/10 hover:bg-teal/20 text-teal border border-teal-dim/30"
                 }`}>
-                {isAdded ? "Added" : "+ Add"}
+                {isAdded ? "Added ✓" : "+ Add"}
               </button>
             </div>
           );
