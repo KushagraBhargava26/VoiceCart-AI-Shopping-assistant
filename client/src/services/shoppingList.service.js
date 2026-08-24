@@ -1,4 +1,5 @@
 import { get, post, patch, del } from './api.js';
+import { archiveItemToHistory } from './history.service.js';
 
 const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
 
@@ -145,6 +146,10 @@ export async function updateItem(id, updates) {
 
 export async function deleteItem(id) {
   const local = getLocalItems();
+  const deletedItem = local.find((i) => i.id === id);
+  if (deletedItem) {
+    archiveItemToHistory(deletedItem);
+  }
   const filtered = local.filter((i) => i.id !== id);
   saveLocalItems(filtered);
 
