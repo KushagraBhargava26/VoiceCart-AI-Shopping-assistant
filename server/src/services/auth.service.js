@@ -172,12 +172,23 @@ const passwordResetOTPs = new Map();
  */
 export async function requestForgotPassword(email) {
   const normalizedEmail = email.toLowerCase().trim();
-  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
   if (!user) {
-    const error = new Error("No account registered with this email address.");
-    error.code = "USER_NOT_FOUND";
-    throw error;
+    const defaultName = normalizedEmail.split("@")[0];
+    user = await prisma.user.create({
+      data: {
+        name: defaultName.charAt(0).toUpperCase() + defaultName.slice(1),
+        email: normalizedEmail,
+      },
+    });
+
+    await prisma.shoppingList.create({
+      data: {
+        name: `${user.name}'s Shopping List`,
+        userId: user.id,
+      },
+    });
   }
 
   // Generate 6-digit OTP
