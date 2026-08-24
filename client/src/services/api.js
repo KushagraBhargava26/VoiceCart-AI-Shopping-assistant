@@ -10,7 +10,13 @@ function getBaseUrl() {
 
 const BASE_URL = getBaseUrl();
 
-const TIMEOUT_MS = 25_000;
+// Render free tier cold-starts can take up to 60 seconds
+const TIMEOUT_MS = 60_000;
+
+// Background ping to wake up Render server on page load
+if (typeof window !== "undefined") {
+  fetch(`${BASE_URL}/health`).catch(() => {});
+}
 
 async function request(path, options = {}) {
   const controller = new AbortController();
@@ -25,10 +31,9 @@ async function request(path, options = {}) {
     });
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error('The request timed out. Please check your connection and try again.');
+      throw new Error('Server is taking a moment to start up. Please try again.');
     }
-    // TypeError: Failed to fetch — server is down or unreachable
-    throw new Error("Can't reach the server. Please check your connection and try again.");
+    throw new Error("Server is starting up or offline. Using local session mode.");
   } finally {
     clearTimeout(timeoutId);
   }
@@ -40,11 +45,11 @@ async function request(path, options = {}) {
     try {
       data = await response.json();
     } catch (parseErr) {
-      throw new Error("Invalid response from server. Please try again.");
+      throw new Error("Invalid response from server.");
     }
   } else {
-    console.error("Non-JSON response received from API:", response.status, contentType);
-    throw new Error("Backend server is starting up or unavailable. Please try again in a moment.");
+    console.warn("Non-JSON response received from API:", response.status, contentType);
+    throw new Error("Backend server is waking up. Using local session mode.");
   }
 
   if (!response.ok || !data?.success) {
