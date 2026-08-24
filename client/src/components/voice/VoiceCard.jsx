@@ -87,16 +87,23 @@ export default function VoiceCard({ onCommandProcessed, onSearchCommand, onNavig
         if (result.action === "ADD_ITEM") {
           const itemsToAdd = Array.isArray(result.items) && result.items.length > 0
             ? result.items
-            : [{ name: result.item || transcript.replace(/add|daal|karo|bhejo|i need|buy/gi, '').trim() || "Item", quantity: result.quantity || 1, unit: result.unit || "unit" }];
+            : [{
+                name: result.item && result.item.toLowerCase() !== "item" ? result.item : (transcript ? transcript.replace(/^(add|put|buy|need|want|get|i want|i need|please|chahiye|daal|daalo|karo)\s+/gi, '').replace(/\s+(to my cart|to cart|to list|in cart|kar do|daal do|karo)$/gi, '').trim() : "Milk"),
+                quantity: result.quantity || 1,
+                unit: result.unit || "unit"
+              }];
 
           for (const item of itemsToAdd) {
-            await addItem({
-              name: item.name || result.item || "Item",
-              quantity: item.quantity || 1,
-              unit: item.unit || "unit",
-              brand: item.brand || "",
-              category: item.category || ""
-            });
+            const cleanName = (item.name || "").toString().trim();
+            if (cleanName && cleanName.length >= 2 && cleanName.toLowerCase() !== "item") {
+              await addItem({
+                name: cleanName,
+                quantity: item.quantity || 1,
+                unit: item.unit || "unit",
+                brand: item.brand || "",
+                category: item.category || ""
+              });
+            }
           }
         } else if (result.action === "REMOVE_ITEM") {
           const targetName = (result.item || transcript || "").toLowerCase().replace(/remove|hata|nikal|do|from my list/gi, "").trim();
