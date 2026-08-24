@@ -102,9 +102,10 @@ function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
 
     try {
       const res = await requestForgotPassword(forgotEmail);
-      setForgotSuccess(
-        `Verification code sent to ${forgotEmail}! ${res.otp ? `(Demo OTP Code: ${res.otp})` : ""}`
-      );
+      setForgotSuccess(`Verification code sent to ${forgotEmail}!`);
+      if (res?.otp) {
+        setForgotOtp(res.otp);
+      }
       setForgotStep(2);
     } catch (err) {
       setForgotError(err.message || "Failed to send reset code. Please check email.");
