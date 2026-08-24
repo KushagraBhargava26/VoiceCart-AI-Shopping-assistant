@@ -40,13 +40,8 @@ function AppContent() {
 
   useEffect(() => {
     const stored = getStoredUser();
-    const isGuest = sessionStorage.getItem(GUEST_PASSED_KEY);
-
     if (stored) {
       setUser(stored);
-    } else if (!isGuest && location.pathname !== "/login") {
-      // First-time visit: Redirect to /login page by default
-      navigate("/login");
     }
   }, []);
 
