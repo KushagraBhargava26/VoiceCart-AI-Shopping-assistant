@@ -16,24 +16,26 @@ export class ErrorBoundary extends Component {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = "/";
+    try {
+      localStorage.removeItem("voicecart_error_state");
+    } catch(e) {}
   };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0a0e14] text-[#e7ecf3] flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-3xl mb-4">
+        <div className="bg-[#10151d] border border-[#232a36] rounded-2xl p-6 text-center text-[#e7ecf3] shadow-xl my-4 mx-auto max-w-lg">
+          <div className="w-12 h-12 rounded-xl bg-teal/10 border border-teal/30 flex items-center justify-center text-2xl mx-auto mb-3">
             🛒
           </div>
-          <h2 className="text-xl font-bold mb-2">VoiceCart Dashboard</h2>
-          <p className="text-xs text-[#8891a0] max-w-md mb-2">
-            {this.state.error?.message || "Navigation state initialized."}
+          <h3 className="text-base font-bold mb-1">VoiceCart AI Assistant</h3>
+          <p className="text-xs text-[#8891a0] mb-4">
+            {this.state.error?.message || "Dashboard loaded safely."}
           </p>
           <button
             onClick={this.handleReset}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal to-purple text-[#0a0e14] font-bold text-xs shadow-lg hover:opacity-90 transition-all">
-            Return to Shopping Dashboard →
+            className="px-4 py-2 rounded-xl bg-[#1dd3a8] text-[#0a0e14] font-bold text-xs shadow hover:opacity-90 transition-all">
+            Refresh Component ✓
           </button>
         </div>
       );

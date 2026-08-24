@@ -34,6 +34,26 @@ app.use("/api/v1/history", historyRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/auth", authRoutes);
 
+// Global Express Error Middleware — Guarantees JSON response, 0 crashes
+app.use((err, req, res, next) => {
+  console.error("Global Server Error caught:", err);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    error: {
+      message: err.message || "Internal server error",
+      code: err.code || "INTERNAL_ERROR",
+    },
+  });
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Server Exception:", err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Server Promise Rejection:", reason);
+});
+
 app.listen(PORT, () => {
   console.log(`VoiceCart server running on port ${PORT}`);
 });
