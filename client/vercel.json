@@ -5,7 +5,7 @@
       "destination": "https://voicecart-backend.onrender.com/api/v1/:path*"
     },
     {
-      "source": "/((?!api/|assets/|favicon).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
