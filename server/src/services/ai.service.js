@@ -52,6 +52,12 @@ Output: {"action":"UPDATE_ITEM","items":[{"name":"apples","quantity":5,"unit":"p
 Input: "Find Colgate toothpaste under 300 rupees"
 Output: {"action":"SEARCH_PRODUCT","query":"toothpaste","filters":{"brand":"Colgate","maxPrice":300,"currency":"INR"}}
 
+Input: "Toothpaste dikhao"
+Output: {"action":"SEARCH_PRODUCT","query":"toothpaste"}
+
+Input: "Milk dhoondo"
+Output: {"action":"SEARCH_PRODUCT","query":"milk"}
+
 Input: "What should I buy?"
 Output: {"action":"GET_SUGGESTIONS"}
 
@@ -111,16 +117,22 @@ function fallbackInterpret(transcript) {
     }
   }
 
-  // Search product
-  const searchMatch = text.match(/(?:search|find|dhoondo|khojo|check|dhundo|search karo)\s+(.+)/i);
-  if (searchMatch && searchMatch[1]) {
-    return {
-      action: "SEARCH_PRODUCT",
-      query: searchMatch[1].replace(/under\s+\d+|below\s+\d+/i, "").trim(),
-    };
+  // Search product (e.g. "search toothpaste", "toothpaste dikhao", "milk dhoondo", "find bread")
+  const searchKeywords = /\b(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|dekhiye)\b/i;
+  if (searchKeywords.test(text) && !/\b(add|buy|get|lana|daalo|hatao|remove|delete)\b/i.test(text)) {
+    const query = text
+      .replace(/\b(search|find|dhoondo|dhundo|khojo|check|show|dikhao|dekho|search karo|karo|dekhiye|me|please)\b/gi, "")
+      .replace(/under\s+\d+|below\s+\d+/i, "")
+      .trim();
+    if (query.length > 0) {
+      return {
+        action: "SEARCH_PRODUCT",
+        query,
+      };
+    }
   }
 
-  // Add item — only reach here if no remove keywords matched
+  // Add item — only reach here if no remove or search keywords matched
   const addMatch = text.match(/(?:add|buy|get|lana|daalo|chahiye|add karo|list mein daalo)?\s*(\d+(?:\.\d+)?)*\s*(litres?|liters?|kg|kilo|grams?|g|packets?|bottles?|pieces?|dozen|dozens|unit)?\s*(?:of\s+)?(.+?)(?:\s+(?:add karo|daalo|to my list|in my list|list mein|chahiye|kharidna hai))*$/i);
 
   if (addMatch && addMatch[3]) {
@@ -130,7 +142,7 @@ function fallbackInterpret(transcript) {
       .replace(/\b(add karo|daalo|list mein|to my list|in my list|please|kharidna hai|chahiye)\b/gi, "")
       .trim();
     // Safety guard: reject if extracted name still contains command-like words
-    const looksLikeCommand = /\b(karo|kar do|dena|hatao|remove|delete|nikalo|search|find)\b/i.test(name);
+    const looksLikeCommand = /\b(karo|kar do|dena|hatao|remove|delete|nikalo|search|find|dikhao|dekho|dhoondo|dhundo)\b/i.test(name);
     if (name.length > 0 && name.length < 60 && !["hello", "hi", "hey", "test"].includes(name) && !looksLikeCommand) {
       return { action: "ADD_ITEM", items: [{ name, quantity: qty, unit }] };
     }
