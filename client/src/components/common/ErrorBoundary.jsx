@@ -26,14 +26,14 @@ export class ErrorBoundary extends Component {
           <div className="w-16 h-16 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-3xl mb-4">
             🛒
           </div>
-          <h2 className="text-xl font-bold mb-2">VoiceCart Dashboard Active</h2>
-          <p className="text-xs text-[#8891a0] max-w-md mb-6">
-            Something unexpected occurred during navigation. Click below to return to your Shopping Dashboard.
+          <h2 className="text-xl font-bold mb-2">VoiceCart Dashboard</h2>
+          <p className="text-xs text-[#8891a0] max-w-md mb-2">
+            {this.state.error?.message || "Navigation state initialized."}
           </p>
           <button
             onClick={this.handleReset}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal to-purple text-[#0a0e14] font-bold text-xs shadow-lg hover:opacity-90 transition-all">
-            Go to Home Dashboard →
+            Return to Shopping Dashboard →
           </button>
         </div>
       );
