@@ -1,20 +1,14 @@
 import { get, post, patch, del } from './api.js';
 
-const FALLBACK_ITEMS = [
-  { id: 'f1', name: 'Amul Taaza Milk', quantity: 2, unit: 'L', category: 'Dairy', brand: 'Amul', status: 'PENDING', price: 68 },
-  { id: 'f2', name: 'Britannia Brown Bread', quantity: 1, unit: 'pkt', category: 'Bakery', brand: 'Britannia', status: 'PENDING', price: 45 },
-  { id: 'f3', name: 'Eggs (Pack of 6)', quantity: 1, unit: 'box', category: 'Grocery', brand: '', status: 'PENDING', price: 55 },
-];
-
 export async function fetchShoppingList() {
   try {
     const res = await get('/shopping-list');
     return res;
   } catch (err) {
-    console.warn("Shopping list API unreachable, using resilient fallback items:", err.message);
+    console.warn("Shopping list API unreachable, returning clean empty list:", err.message);
     return {
-      items: FALLBACK_ITEMS,
-      cartTotal: 236,
+      items: [],
+      cartTotal: 0,
       partialTotal: false,
       currency: "INR"
     };
