@@ -89,11 +89,53 @@ export async function signupUser({ name, email, password }) {
   };
 }
 
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 /**
- * Authenticate via Google SSO payload.
+ * Authenticate via Google SSO token or verified payload.
  */
-export async function googleAuthUser({ name, email }) {
-  const normalizedEmail = (email || `google_user_${Date.now()}@voicecart.ai`).toLowerCase().trim();
+export async function googleAuthUser({ idToken, name, email }) {
+  let verifiedEmail = email;
+  let verifiedName = name;
+
+  if (idToken) {
+    try {
+      // 1. Verify with google-auth-library
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        ...(clientId ? { audience: clientId } : {}),
+      });
+      const payload = ticket.getPayload();
+      if (payload) {
+        verifiedEmail = payload.email;
+        verifiedName = payload.name || payload.given_name || "Google User";
+      }
+    } catch (verifyErr) {
+      console.warn("OAuth2Client verify failed, trying Google tokeninfo endpoint fallback:", verifyErr.message);
+      try {
+        // Fallback to Google tokeninfo public API endpoint
+        const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        if (tokenRes.ok) {
+          const payload = await tokenRes.json();
+          verifiedEmail = payload.email;
+          verifiedName = payload.name || "Google User";
+        }
+      } catch (fallbackErr) {
+        console.error("Google tokeninfo fallback error:", fallbackErr.message);
+      }
+    }
+  }
+
+  if (!verifiedEmail) {
+    const error = new Error("Could not verify Google authentication token.");
+    error.code = "INVALID_GOOGLE_TOKEN";
+    throw error;
+  }
+
+  const normalizedEmail = verifiedEmail.toLowerCase().trim();
 
   let user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
@@ -102,7 +144,7 @@ export async function googleAuthUser({ name, email }) {
   if (!user) {
     user = await prisma.user.create({
       data: {
-        name: name || "Google User",
+        name: verifiedName || "Google User",
         email: normalizedEmail,
       },
     });

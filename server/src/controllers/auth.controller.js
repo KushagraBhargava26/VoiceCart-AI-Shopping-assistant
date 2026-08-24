@@ -46,17 +46,17 @@ export async function handleSignup(req, res) {
 }
 
 export async function handleGoogleAuth(req, res) {
-  const { name, email } = req.body;
+  const { idToken, name, email } = req.body;
 
   try {
-    const userData = await googleAuthUser({ name, email });
+    const userData = await googleAuthUser({ idToken, name, email });
     res.status(200).json({
       success: true,
       data: userData,
     });
   } catch (err) {
     console.error("Error with Google auth:", err);
-    sendError(res, 500, "AUTH_ERROR", "Google authentication failed. Please try again.");
+    sendError(res, 500, "AUTH_ERROR", err.message || "Google authentication failed. Please try again.");
   }
 }
 

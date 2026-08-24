@@ -31,8 +31,8 @@ export async function signupUser({ name, email, password }) {
   return user;
 }
 
-export async function googleAuthUser({ name, email }) {
-  const user = await post("/auth/google", { name, email });
+export async function googleAuthUser({ idToken, name, email }) {
+  const user = await post("/auth/google", { idToken, name, email });
   setStoredUser(user);
   return user;
 }

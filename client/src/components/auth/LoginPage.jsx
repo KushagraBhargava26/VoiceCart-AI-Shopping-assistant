@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { loginUser, signupUser, googleAuthUser } from "../../services/auth.service.js";
 
-export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "718294628194-voicecart.apps.googleusercontent.com";
+
+function LoginPageContent({ onLoginSuccess, onGuestLogin }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,13 +37,32 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
     }
   }
 
-  async function handleGoogleSSO() {
+  async function handleGoogleSuccess(credentialResponse) {
+    if (!credentialResponse?.credential) {
+      setError("Google authentication token was missing.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const user = await googleAuthUser({ idToken: credentialResponse.credential });
+      onLoginSuccess?.(user);
+    } catch (err) {
+      setError(err.message || "Google authentication failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleManualGoogleSSO() {
     setLoading(true);
     setError(null);
     try {
       const user = await googleAuthUser({
         name: "Google User",
-        email: `user_${Date.now()}@voicecart.ai`,
+        email: `google_${Date.now()}@voicecart.ai`,
       });
       onLoginSuccess?.(user);
     } catch (err) {
@@ -105,7 +127,7 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
             <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
               <span className="text-base block mb-1">🗣️</span>
               <h4 className="text-xs font-semibold text-text-main">Bilingual Speech</h4>
-              <p class="text-[10px] text-text-dim mt-0.5">Hindi & Hinglish voice NLP</p>
+              <p className="text-[10px] text-text-dim mt-0.5">Hindi & Hinglish voice NLP</p>
             </div>
 
             <div className="p-3 rounded-xl bg-panel/60 border border-border-soft">
@@ -224,27 +246,24 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
             </div>
 
             {/* Bottom Options on Same Line (Google SSO + Continue as Guest) */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Google Sign In (Bottom Left) */}
-              <button
-                type="button"
-                onClick={handleGoogleSSO}
-                disabled={loading}
-                className="py-2.5 px-3 rounded-xl bg-panel-2 border border-border-soft hover:border-teal-dim flex items-center justify-center gap-2 text-xs font-medium text-text-main transition-colors hover:bg-panel shadow-sm">
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                <span className="truncate">Google Sign In</span>
-              </button>
+            <div className="grid grid-cols-2 gap-3 items-center">
+              {/* Google Sign In Component / Button */}
+              <div className="relative flex items-center justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError("Google Sign-In failed.")}
+                  shape="pill"
+                  size="medium"
+                  theme="filled_black"
+                  text="signin_with"
+                />
+              </div>
 
               {/* Guest Access (Bottom Right - Same Line) */}
               <button
                 type="button"
                 onClick={onGuestLogin}
-                className="py-2.5 px-3 rounded-xl bg-panel-2 border border-border-soft hover:border-teal-dim hover:bg-panel flex items-center justify-center gap-1.5 text-xs font-medium text-text-dim hover:text-text-main transition-colors shadow-sm">
+                className="py-2 px-3 rounded-full bg-panel-2 border border-border-soft hover:border-teal-dim hover:bg-panel flex items-center justify-center gap-1.5 text-xs font-medium text-text-dim hover:text-text-main transition-colors shadow-sm h-[38px]">
                 <span>👤</span>
                 <span className="truncate">Guest Access →</span>
               </button>
@@ -258,5 +277,13 @@ export default function LoginPage({ onLoginSuccess, onGuestLogin }) {
         © 2026 VoiceCart AI Inc. All rights reserved.
       </footer>
     </div>
+  );
+}
+
+export default function LoginPage(props) {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <LoginPageContent {...props} />
+    </GoogleOAuthProvider>
   );
 }
