@@ -22,6 +22,12 @@ const VALID_UNITS = [
   "लीटर", "ली", "किलो", "किग्रा", "पैकेट", "बोतल", "पीस"
 ];
 
+const NOISE_WORDS = [
+  "add", "adb", "ad", "app", "adding", "put", "buy", "need", "want", "get",
+  "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "item", "unit",
+  "1", "2", "3", "4", "5", "l", "litre", "litr e", "kg", "g", "gm", "ml"
+];
+
 const SPECIFIC_BRANDS = [
   "amul", "britannia", "nestle", "nestlé", "bisleri", "colgate", "dettol",
   "tata", "nescafe", "nescafé", "modern", "fortune", "saffola", "pears",
@@ -153,6 +159,15 @@ export function parseClientVoiceCommand(rawTranscript, language) {
   // 3. Multi-item & Hindi/English NLP extraction for ADD_ITEM
   const cleanBody = stripFillers(transcript) || transcript;
 
+  // NOISE / CLARIFICATION GUARD
+  if (!cleanBody || cleanBody.length < 2 || NOISE_WORDS.includes(cleanBody.toLowerCase())) {
+    return {
+      action: "CLARIFICATION_REQUIRED",
+      message: isHi ? "Kya add karna chahte hain? Kripya item ka naam bolein, jaise 1 litre milk ya 2 kg chawal." : "What item would you like to add? Please specify the item name, like 1 litre milk or 2 kg rice.",
+      spokenResponse: isHi ? "Kripya item ka naam saaf bolein, jaise 1 litre milk." : "Please specify what item you would like to add."
+    };
+  }
+
   const segments = cleanBody.split(/\b(?:and|aur|tatha|evam|plus|,)\b/i).map(s => s.trim()).filter(Boolean);
 
   let parsedItems = (segments.length ? segments : [cleanBody]).map((seg) => {
@@ -194,15 +209,15 @@ export function parseClientVoiceCommand(rawTranscript, language) {
       quantity: quantity || 1,
       unit: unit || "unit"
     };
-  }).filter(item => item.name && item.name.trim().length > 0);
+  }).filter(item => item.name && item.name.trim().length > 0 && !NOISE_WORDS.includes(item.name.trim().toLowerCase()));
 
   // Fallback if parsing returned empty
   if (parsedItems.length === 0) {
-    parsedItems = [{
-      name: cleanBody || "Item",
-      quantity: 1,
-      unit: "unit"
-    }];
+    return {
+      action: "CLARIFICATION_REQUIRED",
+      message: isHi ? "Kya add karna chahte hain? Kripya item ka naam bolein, jaise 1 litre milk." : "What item would you like to add? Please specify the item name.",
+      spokenResponse: isHi ? "Kripya item ka naam saaf bolein." : "Please specify what item you would like to add."
+    };
   }
 
   // CHOICE DISAMBIGUATION
@@ -239,13 +254,13 @@ export function parseClientVoiceCommand(rawTranscript, language) {
 
 export async function sendVoiceCommand(transcript, language) {
   const clientParsed = parseClientVoiceCommand(transcript, language);
-  if (clientParsed && clientParsed.action === "PRODUCT_SELECTION_REQUIRED") {
+  if (clientParsed && (clientParsed.action === "PRODUCT_SELECTION_REQUIRED" || clientParsed.action === "CLARIFICATION_REQUIRED")) {
     return clientParsed;
   }
 
   try {
     const res = await post('/commands', { transcript, language });
-    if (res && res.action && res.action === "PRODUCT_SELECTION_REQUIRED") {
+    if (res && res.action && (res.action === "PRODUCT_SELECTION_REQUIRED" || res.action === "CLARIFICATION_REQUIRED")) {
       return res;
     }
     if (res && res.action && (res.items || res.item || res.results)) {

@@ -3,6 +3,20 @@ import { get, post, patch, del } from './api.js';
 const LOCAL_ITEMS_KEY = "voicecart_local_items_store";
 const LOCAL_HISTORY_KEY = "voicecart_local_history_store";
 
+const NOISE_WORDS = [
+  "add", "adb", "ad", "app", "adding", "put", "buy", "need", "want", "get",
+  "chahiye", "daal", "daalo", "karo", "bhejo", "rakho", "laao", "item", "unit",
+  "1", "2", "3", "4", "5", "l", "litre", "litr e", "kg", "g", "gm", "ml"
+];
+
+export function isInvalidItemName(name) {
+  if (!name) return true;
+  const clean = name.toString().trim().toLowerCase();
+  if (clean.length < 2) return true;
+  if (NOISE_WORDS.includes(clean)) return true;
+  return false;
+}
+
 const PRICE_LOOKUP = [
   { keywords: ["water", "bisleri", "pani", "paani"], price: 20 },
   { keywords: ["milk", "doodh", "dudh", "amul milk"], price: 68 },
@@ -71,7 +85,7 @@ export function getLocalItems() {
     if (!data) return [];
     const parsed = JSON.parse(data);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
+    return parsed.filter(i => i && i.name && !isInvalidItemName(i.name));
   } catch (e) {
     return [];
   }
@@ -79,7 +93,7 @@ export function getLocalItems() {
 
 export function saveLocalItems(items) {
   try {
-    const valid = (Array.isArray(items) ? items : []).filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
+    const valid = (Array.isArray(items) ? items : []).filter(i => i && i.name && !isInvalidItemName(i.name));
     localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(valid));
   } catch (e) {}
 }
@@ -89,7 +103,7 @@ export async function fetchShoppingList() {
     const res = await get('/shopping-list');
     if (res && (res.items || Array.isArray(res))) {
       const rawItems = res.items || res;
-      const items = rawItems.filter(i => i && i.name && i.name.toString().trim().length >= 2 && !["1", "2", "3", "l", "litr e", "litre", "unit"].includes(i.name.toString().trim().toLowerCase()));
+      const items = rawItems.filter(i => i && i.name && !isInvalidItemName(i.name));
       saveLocalItems(items);
       const resolvedItems = items.map((item) => {
         const itemPrice = resolveItemPrice(item.name, item.price ?? item.estimatedPrice);
@@ -120,8 +134,8 @@ export async function fetchShoppingList() {
 
 export async function addItem({ name, quantity, unit, category, brand, price }) {
   const cleanName = (name || "").toString().trim();
-  if (!cleanName || cleanName.length < 2 || ["1", "2", "3", "l", "litr e", "litre", "unit"].includes(cleanName.toLowerCase())) {
-    console.warn("Invalid item name attempted, ignoring malformed item:", name);
+  if (isInvalidItemName(cleanName)) {
+    console.warn("Invalid noise item attempted, ignoring:", name);
     return null;
   }
 
